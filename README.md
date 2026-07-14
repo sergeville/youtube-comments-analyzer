@@ -47,7 +47,14 @@ The default mind-map model is `llama3.2:latest`. Change it with `YCA_OLLAMA_MODE
 
 ### 2. Configure The Project
 
-From the project directory:
+Clone the repository and enter the project directory:
+
+```bash
+git clone https://github.com/sergeville/youtube-comments-analyzer.git
+cd youtube-comments-analyzer
+```
+
+Then install the local tooling and create the ignored Neo4j settings file:
 
 ```bash
 npm install
