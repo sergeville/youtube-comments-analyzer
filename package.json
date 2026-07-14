@@ -1,0 +1,28 @@
+{
+  "name": "youtube-comments-analyzer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Extract, classify, visualize, and import YouTube comments into Neo4j.",
+  "scripts": {
+    "extract": "node scripts/youtube-comments-tool.mjs",
+    "transcript": "node scripts/transcript-tool.mjs",
+    "document": "node scripts/document-tool.mjs",
+    "mindmap": "node scripts/mindmap-tool.mjs",
+    "channel": "node scripts/channel-tool.mjs",
+    "serve": "node scripts/server.mjs",
+    "neo4j:up": "docker compose up -d",
+    "neo4j:down": "docker compose down",
+    "neo4j:import": "node scripts/neo4j-import-youtube-comments.mjs",
+    "neo4j:channel": "node scripts/neo4j-import-channel.mjs",
+    "neo4j:verify": "node scripts/neo4j-verify-youtube-comments.mjs",
+    "context:dry": "node scripts/neo4j-context-backfill.mjs",
+    "context:write": "node scripts/neo4j-context-backfill.mjs --write",
+    "test": "node --test \"scripts/**/*.test.mjs\"",
+    "check": "node --check scripts/comment-context.mjs && node --check scripts/youtube-comments-tool.mjs && node --check scripts/neo4j-lib.mjs && node --check scripts/neo4j-import-youtube-comments.mjs && node --check scripts/neo4j-context-backfill.mjs && node --check scripts/neo4j-import-channel.mjs && node --check scripts/neo4j-verify-youtube-comments.mjs && node --check scripts/server.mjs && node --check scripts/transcript-tool.mjs && node --check scripts/document-tool.mjs && node --check scripts/channel-tool.mjs && node --check scripts/mindmap-tool.mjs",
+    "dry-run:neo4j": "node scripts/neo4j-import-youtube-comments.mjs output/neUqTZiFKq4.comments.json --dry-run"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

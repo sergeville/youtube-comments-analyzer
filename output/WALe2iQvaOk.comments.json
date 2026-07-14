@@ -1,0 +1,547 @@
+{
+  "video": {
+    "id": "WALe2iQvaOk",
+    "title": "The Tool That 10x'd My Claude Cowork OS (Zapier MCP)",
+    "url": "https://www.youtube.com/watch?v=WALe2iQvaOk",
+    "reportedCommentCount": 24,
+    "extractedCommentCount": 24
+  },
+  "classification": {
+    "categories": {
+      "Creator promotion": 1,
+      "Risk or limitation concern": 2,
+      "Creator reply": 11,
+      "Setup troubleshooting": 1,
+      "General comment": 1,
+      "Future content request": 3,
+      "Usage testimonial": 1,
+      "Production or design question": 2,
+      "Positive feedback": 2
+    },
+    "sentiments": {
+      "neutral": 3,
+      "concerned": 2,
+      "positive": 19
+    },
+    "priorities": {
+      "low": 15,
+      "high": 3,
+      "medium": 6
+    }
+  },
+  "comments": [
+    {
+      "id": "Ugyr1jSfH4ijEvsQNcR4AaABAg",
+      "author": "@PaulJLipsky",
+      "authorId": "UCmeU2DYiVy80wMBGZzEWnbw",
+      "authorUrl": "https://www.youtube.com/@PaulJLipsky",
+      "text": "#ZapierPartner Save time with production-grade workflows on Zapier MCP. Start building and using Zapier today: https://bit.ly/4vRBaF5",
+      "likeCount": 0,
+      "parent": "root",
+      "isPinned": true,
+      "isCreator": true,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Creator promotion",
+        "intent": "commercial",
+        "sentiment": "neutral",
+        "priority": "low",
+        "reasons": [
+          "sponsored or promotional creator note"
+        ]
+      }
+    },
+    {
+      "id": "Ugyg6RTd68IIIfuLTEV4AaABAg",
+      "author": "@willjfit9345",
+      "authorId": "UC-HOlw486yoC2y8NpXzsZKA",
+      "authorUrl": "https://www.youtube.com/@willjfit9345",
+      "text": "isn't it a bit risky using Zapier since Anthropic limit the connectors for a reason?",
+      "likeCount": 0,
+      "parent": "root",
+      "isPinned": false,
+      "isCreator": false,
+      "timestamp": 1783641600,
+      "evaluation": {
+        "category": "Risk or limitation concern",
+        "intent": "objection",
+        "sentiment": "concerned",
+        "priority": "high",
+        "reasons": [
+          "safety concern",
+          "platform limitation"
+        ]
+      }
+    },
+    {
+      "id": "Ugyg6RTd68IIIfuLTEV4AaABAg.AZ0O-BJLObFAZ28VbFNyBY",
+      "author": "@PaulJLipsky",
+      "authorId": "UCmeU2DYiVy80wMBGZzEWnbw",
+      "authorUrl": "https://www.youtube.com/@PaulJLipsky",
+      "text": "Its up to you",
+      "likeCount": 0,
+      "parent": "Ugyg6RTd68IIIfuLTEV4AaABAg",
+      "isPinned": false,
+      "isCreator": true,
+      "timestamp": 1783641600,
+      "evaluation": {
+        "category": "Creator reply",
+        "intent": "response",
+        "sentiment": "positive",
+        "priority": "low",
+        "reasons": [
+          "creator acknowledgement or answer"
+        ]
+      }
+    },
+    {
+      "id": "UgxJW5LY89fD_QvyO354AaABAg",
+      "author": "@Smurf19750330",
+      "authorId": "UCTcRGkPLTN6Zj2DUoQN7NAg",
+      "authorUrl": "https://www.youtube.com/@Smurf19750330",
+      "text": "Hi. I can't see the apps I connected in Zapier in the connector of Claude. Any suggestions what I'm doing wrong?",
+      "likeCount": 0,
+      "parent": "root",
+      "isPinned": false,
+      "isCreator": false,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Setup troubleshooting",
+        "intent": "question",
+        "sentiment": "neutral",
+        "priority": "high",
+        "reasons": [
+          "integration setup issue",
+          "needs support answer"
+        ]
+      }
+    },
+    {
+      "id": "UgxJW5LY89fD_QvyO354AaABAg.AY9hdxg-tZwAY9mt-6p7ID",
+      "author": "@PaulJLipsky",
+      "authorId": "UCmeU2DYiVy80wMBGZzEWnbw",
+      "authorUrl": "https://www.youtube.com/@PaulJLipsky",
+      "text": "When you first add them you have to wait for them to appear. Try closing Claude and re-opening it.",
+      "likeCount": 0,
+      "parent": "UgxJW5LY89fD_QvyO354AaABAg",
+      "isPinned": false,
+      "isCreator": true,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Creator reply",
+        "intent": "response",
+        "sentiment": "positive",
+        "priority": "low",
+        "reasons": [
+          "creator acknowledgement or answer"
+        ]
+      }
+    },
+    {
+      "id": "UgzWaUXQDeCVrUvNzUl4AaABAg",
+      "author": "@ADOL3_3",
+      "authorId": "UCOaM5b6r8zqDT71ot9E96zA",
+      "authorUrl": "https://www.youtube.com/@ADOL3_3",
+      "text": "Fixing the Gemini inability to use the search tool please 🥺",
+      "likeCount": 1,
+      "parent": "root",
+      "isPinned": false,
+      "isCreator": false,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "General comment",
+        "intent": "general",
+        "sentiment": "neutral",
+        "priority": "low",
+        "reasons": [
+          "uncategorized"
+        ]
+      }
+    },
+    {
+      "id": "UgzWaUXQDeCVrUvNzUl4AaABAg.AY9XGdOuat5AY9XQZi-DJA",
+      "author": "@ADOL3_3",
+      "authorId": "UCOaM5b6r8zqDT71ot9E96zA",
+      "authorUrl": "https://www.youtube.com/@ADOL3_3",
+      "text": "I clearly instructed him to use Golge search, but he refused and told me he had limitations, even though there was nothing wrong with my question",
+      "likeCount": 1,
+      "parent": "UgzWaUXQDeCVrUvNzUl4AaABAg",
+      "isPinned": false,
+      "isCreator": false,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Risk or limitation concern",
+        "intent": "objection",
+        "sentiment": "concerned",
+        "priority": "high",
+        "reasons": [
+          "safety concern",
+          "platform limitation"
+        ]
+      }
+    },
+    {
+      "id": "UgzWaUXQDeCVrUvNzUl4AaABAg.AY9XGdOuat5AY9YG5_ET9f",
+      "author": "@PaulJLipsky",
+      "authorId": "UCmeU2DYiVy80wMBGZzEWnbw",
+      "authorUrl": "https://www.youtube.com/@PaulJLipsky",
+      "text": "Haha it's always worked for me",
+      "likeCount": 0,
+      "parent": "UgzWaUXQDeCVrUvNzUl4AaABAg",
+      "isPinned": false,
+      "isCreator": true,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Creator reply",
+        "intent": "response",
+        "sentiment": "positive",
+        "priority": "low",
+        "reasons": [
+          "creator acknowledgement or answer"
+        ]
+      }
+    },
+    {
+      "id": "UgycqkibHkEXd2SKOJ94AaABAg",
+      "author": "@koenbasten3230",
+      "authorId": "UCF2tT2iIvnFqbvFffgA8lhA",
+      "authorUrl": "https://www.youtube.com/@koenbasten3230",
+      "text": "Bro, I always watch and love your videos. Can you maybe make a video about the Kimi AI? It's a really big player in the game. A lot of people are saying that it's really competitive with Claude and Codex.\n\nI would like to see you compare it in a video. And see if its actually competitive",
+      "likeCount": 0,
+      "parent": "root",
+      "isPinned": false,
+      "isCreator": false,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Future content request",
+        "intent": "request",
+        "sentiment": "positive",
+        "priority": "medium",
+        "reasons": [
+          "requested topic",
+          "content roadmap signal"
+        ]
+      }
+    },
+    {
+      "id": "UgycqkibHkEXd2SKOJ94AaABAg.AY9NFR7p5E1AY9YAXtDXpD",
+      "author": "@PaulJLipsky",
+      "authorId": "UCmeU2DYiVy80wMBGZzEWnbw",
+      "authorUrl": "https://www.youtube.com/@PaulJLipsky",
+      "text": "It is on the list of ideas!",
+      "likeCount": 1,
+      "parent": "UgycqkibHkEXd2SKOJ94AaABAg",
+      "isPinned": false,
+      "isCreator": true,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Creator reply",
+        "intent": "response",
+        "sentiment": "positive",
+        "priority": "low",
+        "reasons": [
+          "creator acknowledgement or answer"
+        ]
+      }
+    },
+    {
+      "id": "Ugx4nPslpOFzILit_t94AaABAg",
+      "author": "@hiladahan4434",
+      "authorId": "UCq-CeiAY2VkkubthoxhMZIw",
+      "authorUrl": "https://www.youtube.com/@hiladahan4434",
+      "text": "Im using Zapier MCP for a while now. Im using it through claude code and rutines and in my ongoing tasks. \nIt can add rows for google docs is you have a table there.\nIt can find and replace words in the doc and update the files in google drive. Its a very strong tool!",
+      "likeCount": 0,
+      "parent": "root",
+      "isPinned": false,
+      "isCreator": false,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Usage testimonial",
+        "intent": "experience",
+        "sentiment": "positive",
+        "priority": "medium",
+        "reasons": [
+          "real workflow usage",
+          "product proof point"
+        ]
+      }
+    },
+    {
+      "id": "Ugx4nPslpOFzILit_t94AaABAg.AY8el_c9m-7AY9YjuiT1Bb",
+      "author": "@PaulJLipsky",
+      "authorId": "UCmeU2DYiVy80wMBGZzEWnbw",
+      "authorUrl": "https://www.youtube.com/@PaulJLipsky",
+      "text": "💪",
+      "likeCount": 0,
+      "parent": "Ugx4nPslpOFzILit_t94AaABAg",
+      "isPinned": false,
+      "isCreator": true,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Creator reply",
+        "intent": "response",
+        "sentiment": "positive",
+        "priority": "low",
+        "reasons": [
+          "creator acknowledgement or answer"
+        ]
+      }
+    },
+    {
+      "id": "Ugw_5ViQaQ3k5p34BSp4AaABAg",
+      "author": "@playdj2376",
+      "authorId": "UCbiuf9zhMZ-EsvMpjcu7GiA",
+      "authorUrl": "https://www.youtube.com/@playdj2376",
+      "text": "Bro, this is exactly what I needed: a simple short educational video on what it is and how it works. Thank you. If you could do one of these for Manus in the same style, I think a lot of people would be very grateful, including myself",
+      "likeCount": 2,
+      "parent": "root",
+      "isPinned": false,
+      "isCreator": false,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Future content request",
+        "intent": "request",
+        "sentiment": "positive",
+        "priority": "medium",
+        "reasons": [
+          "requested topic",
+          "content roadmap signal"
+        ]
+      }
+    },
+    {
+      "id": "Ugw_5ViQaQ3k5p34BSp4AaABAg.AY82jCPbbAsAY9Z79b93F8",
+      "author": "@PaulJLipsky",
+      "authorId": "UCmeU2DYiVy80wMBGZzEWnbw",
+      "authorUrl": "https://www.youtube.com/@PaulJLipsky",
+      "text": "Great idea!",
+      "likeCount": 1,
+      "parent": "Ugw_5ViQaQ3k5p34BSp4AaABAg",
+      "isPinned": false,
+      "isCreator": true,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Creator reply",
+        "intent": "response",
+        "sentiment": "positive",
+        "priority": "low",
+        "reasons": [
+          "creator acknowledgement or answer"
+        ]
+      }
+    },
+    {
+      "id": "UgyOl-wHrAbHD3j7Bcd4AaABAg",
+      "author": "@bossmodemarketing",
+      "authorId": "UCFBCwWaQV6p9h4vLBeWpuaQ",
+      "authorUrl": "https://www.youtube.com/@bossmodemarketing",
+      "text": "great video. Tutorial on how you made those overlays, video presentation/ animations! they look amazing.",
+      "likeCount": 0,
+      "parent": "root",
+      "isPinned": false,
+      "isCreator": false,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Production or design question",
+        "intent": "question",
+        "sentiment": "positive",
+        "priority": "medium",
+        "reasons": [
+          "video production interest",
+          "tooling question"
+        ]
+      }
+    },
+    {
+      "id": "UgyOl-wHrAbHD3j7Bcd4AaABAg.AY7ss7Q4_rWAY9ZGN04bwD",
+      "author": "@PaulJLipsky",
+      "authorId": "UCmeU2DYiVy80wMBGZzEWnbw",
+      "authorUrl": "https://www.youtube.com/@PaulJLipsky",
+      "text": "It's in the works!",
+      "likeCount": 0,
+      "parent": "UgyOl-wHrAbHD3j7Bcd4AaABAg",
+      "isPinned": false,
+      "isCreator": true,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Creator reply",
+        "intent": "response",
+        "sentiment": "positive",
+        "priority": "low",
+        "reasons": [
+          "creator acknowledgement or answer"
+        ]
+      }
+    },
+    {
+      "id": "UgxOXFy-HutTUYA3tGJ4AaABAg",
+      "author": "@Code-With-Robby",
+      "authorId": "UCdukEcJCWR_ajtx6quftiNQ",
+      "authorUrl": "https://www.youtube.com/@Code-With-Robby",
+      "text": "Good stuff buddy",
+      "likeCount": 0,
+      "parent": "root",
+      "isPinned": false,
+      "isCreator": false,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Positive feedback",
+        "intent": "praise",
+        "sentiment": "positive",
+        "priority": "low",
+        "reasons": [
+          "viewer encouragement"
+        ]
+      }
+    },
+    {
+      "id": "UgxOXFy-HutTUYA3tGJ4AaABAg.AY7ioOaXtvNAY9ZHTEGVsO",
+      "author": "@PaulJLipsky",
+      "authorId": "UCmeU2DYiVy80wMBGZzEWnbw",
+      "authorUrl": "https://www.youtube.com/@PaulJLipsky",
+      "text": "Thanks :)",
+      "likeCount": 0,
+      "parent": "UgxOXFy-HutTUYA3tGJ4AaABAg",
+      "isPinned": false,
+      "isCreator": true,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Creator reply",
+        "intent": "response",
+        "sentiment": "positive",
+        "priority": "low",
+        "reasons": [
+          "creator acknowledgement or answer"
+        ]
+      }
+    },
+    {
+      "id": "Ugy9k6jW5SX0HRLHoqx4AaABAg",
+      "author": "@nitzanlevi5236",
+      "authorId": "UCm5QGzkEOg9B4wZI0xdhfLQ",
+      "authorUrl": "https://www.youtube.com/@nitzanlevi5236",
+      "text": "Great video! can you make another video on Claude cowork and Zapier that is not as simple as writing emails... I am considering for my coloring books business.",
+      "likeCount": 1,
+      "parent": "root",
+      "isPinned": false,
+      "isCreator": false,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Future content request",
+        "intent": "request",
+        "sentiment": "positive",
+        "priority": "medium",
+        "reasons": [
+          "requested topic",
+          "content roadmap signal"
+        ]
+      }
+    },
+    {
+      "id": "Ugy9k6jW5SX0HRLHoqx4AaABAg.AY7WLIlewaGAY7_zshcp0e",
+      "author": "@PaulJLipsky",
+      "authorId": "UCmeU2DYiVy80wMBGZzEWnbw",
+      "authorUrl": "https://www.youtube.com/@PaulJLipsky",
+      "text": "Thanks! That’s a great idea for a future deep dive.",
+      "likeCount": 0,
+      "parent": "Ugy9k6jW5SX0HRLHoqx4AaABAg",
+      "isPinned": false,
+      "isCreator": true,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Creator reply",
+        "intent": "response",
+        "sentiment": "positive",
+        "priority": "low",
+        "reasons": [
+          "creator acknowledgement or answer"
+        ]
+      }
+    },
+    {
+      "id": "UgwsQTvkRdHYr38D5LF4AaABAg",
+      "author": "@Khotwa_najah",
+      "authorId": "UCklxWFAhq_px2cFzKFtyqoQ",
+      "authorUrl": "https://www.youtube.com/@Khotwa_najah",
+      "text": "Great video and  animation, what did you used for animation ( for presentation) remotion dev?",
+      "likeCount": 0,
+      "parent": "root",
+      "isPinned": false,
+      "isCreator": false,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Production or design question",
+        "intent": "question",
+        "sentiment": "positive",
+        "priority": "medium",
+        "reasons": [
+          "video production interest",
+          "tooling question"
+        ]
+      }
+    },
+    {
+      "id": "UgwsQTvkRdHYr38D5LF4AaABAg.AY74s6qEWlYAY7a9UWBUSm",
+      "author": "@PaulJLipsky",
+      "authorId": "UCmeU2DYiVy80wMBGZzEWnbw",
+      "authorUrl": "https://www.youtube.com/@PaulJLipsky",
+      "text": "Claude Design",
+      "likeCount": 1,
+      "parent": "UgwsQTvkRdHYr38D5LF4AaABAg",
+      "isPinned": false,
+      "isCreator": true,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Creator reply",
+        "intent": "response",
+        "sentiment": "positive",
+        "priority": "low",
+        "reasons": [
+          "creator acknowledgement or answer"
+        ]
+      }
+    },
+    {
+      "id": "UgwIhPO651PZwcRLAVB4AaABAg",
+      "author": "@SomeRandom56",
+      "authorId": "UCH7PMa5selUTsjUz6Pt7-ZA",
+      "authorUrl": "https://www.youtube.com/@SomeRandom56",
+      "text": "Great Video keep it going",
+      "likeCount": 0,
+      "parent": "root",
+      "isPinned": false,
+      "isCreator": false,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Positive feedback",
+        "intent": "praise",
+        "sentiment": "positive",
+        "priority": "low",
+        "reasons": [
+          "viewer encouragement"
+        ]
+      }
+    },
+    {
+      "id": "UgwIhPO651PZwcRLAVB4AaABAg.AY6xuR8ufuWAY7aCSL_G3Y",
+      "author": "@PaulJLipsky",
+      "authorId": "UCmeU2DYiVy80wMBGZzEWnbw",
+      "authorUrl": "https://www.youtube.com/@PaulJLipsky",
+      "text": "Thanks, I will.",
+      "likeCount": 0,
+      "parent": "UgwIhPO651PZwcRLAVB4AaABAg",
+      "isPinned": false,
+      "isCreator": true,
+      "timestamp": 1782086400,
+      "evaluation": {
+        "category": "Creator reply",
+        "intent": "response",
+        "sentiment": "positive",
+        "priority": "low",
+        "reasons": [
+          "creator acknowledgement or answer"
+        ]
+      }
+    }
+  ]
+}

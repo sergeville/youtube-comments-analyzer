@@ -1,0 +1,11 @@
+.env
+node_modules/
+.DS_Store
+.fallow/
+output/*
+!output/WALe2iQvaOk.comments.html
+!output/WALe2iQvaOk.comments.json
+!output/WALe2iQvaOk.info.json
+!output/neUqTZiFKq4.comments.html
+!output/neUqTZiFKq4.comments.json
+!output/neUqTZiFKq4.info.json

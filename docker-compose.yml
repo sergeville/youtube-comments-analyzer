@@ -1,0 +1,25 @@
+services:
+  neo4j:
+    # Pinned to the 5.26 LTS line (matches docs/neo4j/); bump deliberately.
+    image: neo4j:5.26-community
+    container_name: youtube-comments-neo4j
+    restart: unless-stopped
+    # Bind to loopback only — this is a local dev tool; never expose Neo4j on all
+    # interfaces. For a remote target, front it with TLS (see docs/neo4j/security.md).
+    ports:
+      - "127.0.0.1:7474:7474"
+      - "127.0.0.1:7687:7687"
+    environment:
+      NEO4J_AUTH: "neo4j/${NEO4J_PASSWORD}"
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p \"${NEO4J_PASSWORD}\" \"RETURN 1\""]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+volumes:
+  neo4j-data:
+  neo4j-logs:

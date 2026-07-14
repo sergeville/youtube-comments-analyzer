@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Tool That 10x&#039;d My Claude Cowork OS (Zapier MCP) - YouTube Comments</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --panel: #fff;
+      --ink: #17191f;
+      --muted: #667085;
+      --line: #dde3ea;
+      --accent: #0f766e;
+      --accent-soft: #d9f3ef;
+      --warn: #a85512;
+      --warn-soft: #fff1d6;
+      --shadow: 0 16px 45px rgba(25, 31, 44, 0.10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 16% 8%, rgba(15, 118, 110, 0.10), transparent 28rem), linear-gradient(135deg, #f9fafb 0%, var(--bg) 44%, #eef4f5 100%);
+      color: var(--ink);
+    }
+    .shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 38px 0 54px; }
+    header { display: grid; grid-template-columns: 1fr auto; gap: 22px; align-items: end; margin-bottom: 22px; }
+    .eyebrow { margin: 0 0 9px; color: var(--accent); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+    h1 { margin: 0; max-width: 820px; font-size: clamp(2rem, 5vw, 4.4rem); line-height: 0.98; letter-spacing: 0; }
+    .source { margin: 14px 0 0; color: var(--muted); overflow-wrap: anywhere; }
+    .source a { color: var(--accent); font-weight: 700; }
+    .summary { display: grid; grid-template-columns: repeat(3, minmax(104px, 1fr)); gap: 10px; min-width: 330px; }
+    .metric { min-height: 86px; padding: 15px 16px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 255, 255, 0.74); box-shadow: 0 8px 24px rgba(30, 41, 59, 0.06); }
+    .metric strong { display: block; font-size: 1.7rem; line-height: 1; }
+    .metric span { display: block; margin-top: 8px; color: var(--muted); font-size: 0.82rem; }
+    .toolbar { position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; margin: 22px 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 255, 255, 0.86); backdrop-filter: blur(16px); box-shadow: 0 10px 30px rgba(30, 41, 59, 0.07); }
+    .search { width: 100%; min-height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: #fff; font: inherit; }
+    .search:focus { outline: 2px solid rgba(15, 118, 110, 0.24); border-color: var(--accent); }
+    .toggle { display: inline-flex; align-items: center; gap: 9px; min-height: 44px; padding: 0 13px; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); background: #fff; white-space: nowrap; cursor: pointer; user-select: none; }
+    .toggle input { accent-color: var(--accent); }
+    .grid { position: relative; isolation: isolate; display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; overflow: visible; }
+    .mindmap { margin: 22px 0; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 255, 255, 0.84); box-shadow: var(--shadow); overflow: hidden; }
+    .mindmap h2 { margin: 0 0 16px; font-size: 1rem; }
+    .mindmap-graph { position: relative; isolation: isolate; min-height: 520px; border: 1px solid var(--line); border-radius: 8px; background: linear-gradient(135deg, #ffffff 0%, #f7fbfb 100%); overflow: visible; }
+    .mindmap-graph svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .map-link { stroke: rgba(15, 118, 110, 0.34); stroke-width: 0.42; vector-effect: non-scaling-stroke; }
+    .map-link.major { stroke: rgba(15, 118, 110, 0.62); stroke-width: 0.72; }
+    .map-node { position: absolute; left: var(--x); top: var(--y); z-index: 1; width: min(210px, 38vw); min-height: 92px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 255, 255, 0.96); box-shadow: 0 12px 30px rgba(30, 41, 59, 0.10); transform: translate(-50%, -50%); }
+    .map-node[role="button"] { cursor: pointer; transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
+    .map-node[role="button"]:hover, .map-node[role="button"]:focus-visible { z-index: 999; border-color: rgba(15, 118, 110, 0.48); box-shadow: 0 24px 64px rgba(15, 118, 110, 0.24); transform: translate(-50%, -50%) scale(1.055); }
+    .map-node[role="button"]:focus-visible { outline: 3px solid rgba(15, 118, 110, 0.28); outline-offset: 3px; }
+    .map-node.active { z-index: 20; border-color: var(--accent); box-shadow: 0 20px 50px rgba(15, 118, 110, 0.24); }
+    .map-node.core { display: grid; place-items: center; width: 188px; min-height: 128px; border: 0; color: #fff; background: linear-gradient(135deg, #0f766e, #334155); text-align: center; box-shadow: 0 18px 42px rgba(15, 23, 42, 0.22); }
+    .map-node.core.active { box-shadow: 0 20px 54px rgba(15, 23, 42, 0.30); }
+    .map-node.major { border-color: rgba(15, 118, 110, 0.42); box-shadow: 0 18px 40px rgba(15, 118, 110, 0.16); }
+    .map-node strong { display: block; padding-right: 38px; font-size: 0.88rem; line-height: 1.18; }
+    .map-node small { display: block; margin-top: 8px; color: var(--muted); line-height: 1.32; }
+    .map-node.core strong { padding: 0; font-size: 1.02rem; }
+    .map-node.core small { color: rgba(255, 255, 255, 0.78); }
+    .map-count { position: absolute; right: 10px; top: 10px; display: grid; place-items: center; min-width: 30px; height: 30px; border-radius: 999px; color: var(--accent); background: var(--accent-soft); font-weight: 850; }
+    .filter-state { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 14px 0 0; color: var(--muted); font-size: 0.86rem; }
+    .filter-state strong { color: var(--ink); }
+    .clear-filter { min-height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--accent); background: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+    .clear-filter:hover { border-color: var(--accent); }
+    .theme-view { margin: 22px 0; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 255, 255, 0.84); box-shadow: var(--shadow); overflow: hidden; }
+    .theme-view h2 { margin: 0 0 6px; font-size: 1rem; }
+    .theme-view > p { margin: 0 0 16px; color: var(--muted); font-size: 0.88rem; }
+    .theme-board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(280px, 340px); gap: 14px; overflow-x: auto; padding: 2px 2px 14px; scroll-snap-type: x proximity; }
+    .theme-lane { display: flex; flex-direction: column; min-height: 360px; border: 1px solid var(--line); border-radius: 8px; background: #fff; scroll-snap-align: start; }
+    .lane-header { position: sticky; top: 0; z-index: 1; padding: 13px; border-bottom: 1px solid var(--line); background: rgba(255, 255, 255, 0.96); }
+    .lane-header strong { display: block; padding-right: 42px; font-size: 0.94rem; line-height: 1.2; }
+    .lane-header span { position: absolute; right: 12px; top: 12px; display: grid; place-items: center; min-width: 30px; height: 30px; border-radius: 999px; color: var(--accent); background: var(--accent-soft); font-weight: 850; }
+    .lane-items { display: grid; gap: 10px; padding: 12px; }
+    .lane-thread { width: 100%; min-height: 118px; padding: 11px; border: 1px solid var(--line); border-radius: 8px; background: #f9fbfb; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
+    .lane-thread:hover, .lane-thread:focus-visible { border-color: rgba(15, 118, 110, 0.46); box-shadow: 0 16px 36px rgba(15, 118, 110, 0.16); transform: translateY(-3px); outline: none; }
+    .lane-thread strong { display: block; margin-bottom: 6px; overflow-wrap: anywhere; font-size: 0.84rem; }
+    .lane-thread p { display: -webkit-box; margin: 0; overflow: hidden; color: #344054; font-size: 0.84rem; line-height: 1.38; -webkit-line-clamp: 4; -webkit-box-orient: vertical; }
+    .lane-thread small { display: block; margin-top: 9px; color: var(--muted); font-size: 0.76rem; }
+    .neo4j-view { margin: 22px 0; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: #101828; color: #f8fafc; box-shadow: var(--shadow); overflow: hidden; }
+    .neo4j-head { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: start; margin-bottom: 16px; }
+    .neo4j-head h2 { margin: 0 0 6px; font-size: 1rem; }
+    .neo4j-head p { margin: 0; max-width: 720px; color: #cbd5e1; font-size: 0.88rem; line-height: 1.45; }
+    .neo4j-link { display: inline-flex; align-items: center; min-height: 38px; padding: 0 12px; border: 1px solid rgba(45, 212, 191, 0.42); border-radius: 8px; color: #99f6e4; background: rgba(15, 118, 110, 0.16); font-weight: 800; text-decoration: none; white-space: nowrap; }
+    .neo4j-stats { display: grid; grid-template-columns: repeat(6, minmax(104px, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .neo4j-stat { min-height: 76px; padding: 12px; border: 1px solid rgba(148, 163, 184, 0.22); border-radius: 8px; background: rgba(255, 255, 255, 0.06); }
+    .neo4j-stat strong { display: block; color: #fff; font-size: 1.35rem; line-height: 1; }
+    .neo4j-stat span { display: block; margin-top: 8px; color: #cbd5e1; font-size: 0.78rem; }
+    .neo4j-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .cypher-card { min-width: 0; padding: 13px; border: 1px solid rgba(148, 163, 184, 0.22); border-radius: 8px; background: rgba(255, 255, 255, 0.06); }
+    .cypher-card h3 { margin: 0 0 9px; color: #fff; font-size: 0.9rem; }
+    .cypher-card pre { margin: 0; min-height: 116px; overflow: auto; color: #d1fae5; font-size: 0.78rem; line-height: 1.45; white-space: pre-wrap; }
+    .copy-cypher { margin-top: 11px; min-height: 34px; padding: 0 10px; border: 1px solid rgba(45, 212, 191, 0.38); border-radius: 8px; color: #99f6e4; background: transparent; font: inherit; font-size: 0.82rem; font-weight: 800; cursor: pointer; }
+    .copy-cypher:hover { background: rgba(45, 212, 191, 0.12); }
+    .card { position: relative; z-index: 1; min-width: 0; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 255, 255, 0.9); box-shadow: var(--shadow); overflow: hidden; transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease; }
+    .card:hover, .card:focus-within { z-index: 999; border-color: rgba(15, 118, 110, 0.38); box-shadow: 0 30px 80px rgba(25, 31, 44, 0.24); transform: translateY(-8px) scale(1.015); }
+    .card-header { display: grid; grid-template-columns: 46px 1fr auto; gap: 12px; align-items: center; padding: 16px; border-bottom: 1px solid var(--line); }
+    .avatar { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; color: #fff; background: linear-gradient(135deg, #0f766e, #334155); font-weight: 800; }
+    .author { min-width: 0; margin: 0; overflow-wrap: anywhere; font-size: 1rem; font-weight: 800; }
+    .meta { margin: 4px 0 0; color: var(--muted); font-size: 0.84rem; }
+    .badge { align-self: start; padding: 6px 9px; border-radius: 999px; color: var(--accent); background: var(--accent-soft); font-size: 0.76rem; font-weight: 800; white-space: nowrap; }
+    .badge.creator { color: var(--warn); background: var(--warn-soft); }
+    .comments { display: grid; gap: 10px; padding: 14px; }
+    blockquote { margin: 0; padding: 12px 13px; border-left: 3px solid var(--accent); border-radius: 7px; color: #252a33; background: #f9fbfb; line-height: 1.45; overflow-wrap: anywhere; white-space: pre-wrap; }
+    .thread-root blockquote { border-left-color: #334155; background: #fff; }
+    .reply-stack { display: grid; gap: 10px; margin-left: 18px; padding-left: 18px; border-left: 2px solid rgba(15, 118, 110, 0.32); }
+    .reply-item { position: relative; }
+    .reply-item::before { content: ""; position: absolute; left: -18px; top: 22px; width: 18px; height: 2px; background: rgba(15, 118, 110, 0.32); }
+    .reply-author { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 6px; color: var(--muted); font-size: 0.8rem; font-weight: 750; }
+    .comment-match blockquote { border-left-color: var(--warn); background: #fffbeb; }
+    .thread-pair { display: grid; gap: 0; }
+    .parent-context { position: relative; margin: 0 0 0 13px; padding: 11px 12px 11px 16px; border: 1px solid var(--line); border-left: 3px solid #94a3b8; border-radius: 7px; color: #475467; background: #fff; line-height: 1.38; overflow-wrap: anywhere; white-space: pre-wrap; }
+    .parent-context strong { display: block; margin-bottom: 6px; color: var(--ink); font-size: 0.78rem; }
+    .thread-connector { width: 2px; height: 22px; margin-left: 27px; background: linear-gradient(180deg, #94a3b8, var(--accent)); }
+    .thread-pair blockquote { border-left-color: var(--accent); }
+    .comment-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; color: var(--muted); font-size: 0.78rem; }
+    .tag { display: inline-flex; align-items: center; min-height: 23px; padding: 0 8px; border-radius: 999px; color: var(--accent); background: var(--accent-soft); font-weight: 750; }
+    .tag.priority-high { color: #b42318; background: #fee4e2; }
+    .tag.priority-medium { color: #92400e; background: #fef3c7; }
+    .empty { display: none; padding: 28px; border: 1px dashed var(--line); border-radius: 8px; color: var(--muted); background: rgba(255, 255, 255, 0.72); text-align: center; }
+    @media (max-width: 760px) {
+      header, .toolbar { grid-template-columns: 1fr; }
+      .summary { min-width: 0; }
+      .neo4j-head, .neo4j-grid { grid-template-columns: 1fr; }
+      .neo4j-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .mindmap-graph { min-height: 760px; }
+      .map-node { width: min(230px, 68vw); }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <p class="eyebrow">YouTube comment review</p>
+        <h1>The Tool That 10x&#039;d My Claude Cowork OS (Zapier MCP)</h1>
+        <p class="source"><a href="https://www.youtube.com/watch?v=WALe2iQvaOk">https://www.youtube.com/watch?v=WALe2iQvaOk</a></p>
+      </div>
+      <section class="summary" aria-label="Comment summary">
+        <div class="metric"><strong id="totalComments">0</strong><span>comments</span></div>
+        <div class="metric"><strong id="totalAuthors">0</strong><span>authors</span></div>
+        <div class="metric"><strong id="creatorReplies">0</strong><span>creator comments</span></div>
+      </section>
+    </header>
+    <section class="toolbar" aria-label="Filters">
+      <input id="search" class="search" type="search" placeholder="Search authors or comments">
+      <label class="toggle"><input id="creatorOnly" type="checkbox"> Creator only</label>
+    </section>
+    <section class="mindmap" aria-label="Comment classification mindmap">
+      <h2>Comment Classification Mindmap</h2>
+      <div id="mindmapGraph" class="mindmap-graph"></div>
+      <div class="filter-state" aria-live="polite">
+        <span id="categoryFilterState">Showing all classifications</span>
+        <button id="clearCategoryFilter" class="clear-filter" type="button" hidden>Show all</button>
+      </div>
+    </section>
+    <section class="theme-view" aria-label="Theme lanes">
+      <h2>Theme Lanes</h2>
+      <p>Scan categories as lanes, then jump into the matching conversation threads.</p>
+      <div id="themeBoard" class="theme-board"></div>
+    </section>
+    <section class="neo4j-view" aria-label="Neo4j graph database">
+      <div class="neo4j-head">
+        <div>
+          <h2>Neo4j Graph Database</h2>
+          <p>This report is loaded into Neo4j as videos, authors, comments, replies, categories, and the classification profile. Queries are shown here for Neo4j Browser; the HTML does not expose database credentials.</p>
+        </div>
+        <a class="neo4j-link" href="http://localhost:7474" target="_blank" rel="noreferrer">Open Neo4j Browser</a>
+      </div>
+      <div id="neo4jStats" class="neo4j-stats"></div>
+      <div id="cypherQueries" class="neo4j-grid"></div>
+    </section>
+    <section id="cards" class="grid" aria-live="polite"></section>
+    <p id="empty" class="empty">No comments match the current filter.</p>
+  </main>
+  <script>
+    const data = {"video":{"id":"WALe2iQvaOk","title":"The Tool That 10x'd My Claude Cowork OS (Zapier MCP)","url":"https://www.youtube.com/watch?v=WALe2iQvaOk","reportedCommentCount":24,"extractedCommentCount":24},"classification":{"categories":{"Creator promotion":1,"Risk or limitation concern":2,"Creator reply":11,"Setup troubleshooting":1,"General comment":1,"Future content request":3,"Usage testimonial":1,"Production or design question":2,"Positive feedback":2},"sentiments":{"neutral":3,"concerned":2,"positive":19},"priorities":{"low":15,"high":3,"medium":6}},"comments":[{"id":"Ugyr1jSfH4ijEvsQNcR4AaABAg","author":"@PaulJLipsky","authorId":"UCmeU2DYiVy80wMBGZzEWnbw","authorUrl":"https://www.youtube.com/@PaulJLipsky","text":"#ZapierPartner Save time with production-grade workflows on Zapier MCP. Start building and using Zapier today: https://bit.ly/4vRBaF5","likeCount":0,"parent":"root","isPinned":true,"isCreator":true,"timestamp":1782086400,"evaluation":{"category":"Creator promotion","intent":"commercial","sentiment":"neutral","priority":"low","reasons":["sponsored or promotional creator note"]}},{"id":"Ugyg6RTd68IIIfuLTEV4AaABAg","author":"@willjfit9345","authorId":"UC-HOlw486yoC2y8NpXzsZKA","authorUrl":"https://www.youtube.com/@willjfit9345","text":"isn't it a bit risky using Zapier since Anthropic limit the connectors for a reason?","likeCount":0,"parent":"root","isPinned":false,"isCreator":false,"timestamp":1783641600,"evaluation":{"category":"Risk or limitation concern","intent":"objection","sentiment":"concerned","priority":"high","reasons":["safety concern","platform limitation"]}},{"id":"Ugyg6RTd68IIIfuLTEV4AaABAg.AZ0O-BJLObFAZ28VbFNyBY","author":"@PaulJLipsky","authorId":"UCmeU2DYiVy80wMBGZzEWnbw","authorUrl":"https://www.youtube.com/@PaulJLipsky","text":"Its up to you","likeCount":0,"parent":"Ugyg6RTd68IIIfuLTEV4AaABAg","isPinned":false,"isCreator":true,"timestamp":1783641600,"evaluation":{"category":"Creator reply","intent":"response","sentiment":"positive","priority":"low","reasons":["creator acknowledgement or answer"]}},{"id":"UgxJW5LY89fD_QvyO354AaABAg","author":"@Smurf19750330","authorId":"UCTcRGkPLTN6Zj2DUoQN7NAg","authorUrl":"https://www.youtube.com/@Smurf19750330","text":"Hi. I can't see the apps I connected in Zapier in the connector of Claude. Any suggestions what I'm doing wrong?","likeCount":0,"parent":"root","isPinned":false,"isCreator":false,"timestamp":1782086400,"evaluation":{"category":"Setup troubleshooting","intent":"question","sentiment":"neutral","priority":"high","reasons":["integration setup issue","needs support answer"]}},{"id":"UgxJW5LY89fD_QvyO354AaABAg.AY9hdxg-tZwAY9mt-6p7ID","author":"@PaulJLipsky","authorId":"UCmeU2DYiVy80wMBGZzEWnbw","authorUrl":"https://www.youtube.com/@PaulJLipsky","text":"When you first add them you have to wait for them to appear. Try closing Claude and re-opening it.","likeCount":0,"parent":"UgxJW5LY89fD_QvyO354AaABAg","isPinned":false,"isCreator":true,"timestamp":1782086400,"evaluation":{"category":"Creator reply","intent":"response","sentiment":"positive","priority":"low","reasons":["creator acknowledgement or answer"]}},{"id":"UgzWaUXQDeCVrUvNzUl4AaABAg","author":"@ADOL3_3","authorId":"UCOaM5b6r8zqDT71ot9E96zA","authorUrl":"https://www.youtube.com/@ADOL3_3","text":"Fixing the Gemini inability to use the search tool please 🥺","likeCount":1,"parent":"root","isPinned":false,"isCreator":false,"timestamp":1782086400,"evaluation":{"category":"General comment","intent":"general","sentiment":"neutral","priority":"low","reasons":["uncategorized"]}},{"id":"UgzWaUXQDeCVrUvNzUl4AaABAg.AY9XGdOuat5AY9XQZi-DJA","author":"@ADOL3_3","authorId":"UCOaM5b6r8zqDT71ot9E96zA","authorUrl":"https://www.youtube.com/@ADOL3_3","text":"I clearly instructed him to use Golge search, but he refused and told me he had limitations, even though there was nothing wrong with my question","likeCount":1,"parent":"UgzWaUXQDeCVrUvNzUl4AaABAg","isPinned":false,"isCreator":false,"timestamp":1782086400,"evaluation":{"category":"Risk or limitation concern","intent":"objection","sentiment":"concerned","priority":"high","reasons":["safety concern","platform limitation"]}},{"id":"UgzWaUXQDeCVrUvNzUl4AaABAg.AY9XGdOuat5AY9YG5_ET9f","author":"@PaulJLipsky","authorId":"UCmeU2DYiVy80wMBGZzEWnbw","authorUrl":"https://www.youtube.com/@PaulJLipsky","text":"Haha it's always worked for me","likeCount":0,"parent":"UgzWaUXQDeCVrUvNzUl4AaABAg","isPinned":false,"isCreator":true,"timestamp":1782086400,"evaluation":{"category":"Creator reply","intent":"response","sentiment":"positive","priority":"low","reasons":["creator acknowledgement or answer"]}},{"id":"UgycqkibHkEXd2SKOJ94AaABAg","author":"@koenbasten3230","authorId":"UCF2tT2iIvnFqbvFffgA8lhA","authorUrl":"https://www.youtube.com/@koenbasten3230","text":"Bro, I always watch and love your videos. Can you maybe make a video about the Kimi AI? It's a really big player in the game. A lot of people are saying that it's really competitive with Claude and Codex.\n\nI would like to see you compare it in a video. And see if its actually competitive","likeCount":0,"parent":"root","isPinned":false,"isCreator":false,"timestamp":1782086400,"evaluation":{"category":"Future content request","intent":"request","sentiment":"positive","priority":"medium","reasons":["requested topic","content roadmap signal"]}},{"id":"UgycqkibHkEXd2SKOJ94AaABAg.AY9NFR7p5E1AY9YAXtDXpD","author":"@PaulJLipsky","authorId":"UCmeU2DYiVy80wMBGZzEWnbw","authorUrl":"https://www.youtube.com/@PaulJLipsky","text":"It is on the list of ideas!","likeCount":1,"parent":"UgycqkibHkEXd2SKOJ94AaABAg","isPinned":false,"isCreator":true,"timestamp":1782086400,"evaluation":{"category":"Creator reply","intent":"response","sentiment":"positive","priority":"low","reasons":["creator acknowledgement or answer"]}},{"id":"Ugx4nPslpOFzILit_t94AaABAg","author":"@hiladahan4434","authorId":"UCq-CeiAY2VkkubthoxhMZIw","authorUrl":"https://www.youtube.com/@hiladahan4434","text":"Im using Zapier MCP for a while now. Im using it through claude code and rutines and in my ongoing tasks. \nIt can add rows for google docs is you have a table there.\nIt can find and replace words in the doc and update the files in google drive. Its a very strong tool!","likeCount":0,"parent":"root","isPinned":false,"isCreator":false,"timestamp":1782086400,"evaluation":{"category":"Usage testimonial","intent":"experience","sentiment":"positive","priority":"medium","reasons":["real workflow usage","product proof point"]}},{"id":"Ugx4nPslpOFzILit_t94AaABAg.AY8el_c9m-7AY9YjuiT1Bb","author":"@PaulJLipsky","authorId":"UCmeU2DYiVy80wMBGZzEWnbw","authorUrl":"https://www.youtube.com/@PaulJLipsky","text":"💪","likeCount":0,"parent":"Ugx4nPslpOFzILit_t94AaABAg","isPinned":false,"isCreator":true,"timestamp":1782086400,"evaluation":{"category":"Creator reply","intent":"response","sentiment":"positive","priority":"low","reasons":["creator acknowledgement or answer"]}},{"id":"Ugw_5ViQaQ3k5p34BSp4AaABAg","author":"@playdj2376","authorId":"UCbiuf9zhMZ-EsvMpjcu7GiA","authorUrl":"https://www.youtube.com/@playdj2376","text":"Bro, this is exactly what I needed: a simple short educational video on what it is and how it works. Thank you. If you could do one of these for Manus in the same style, I think a lot of people would be very grateful, including myself","likeCount":2,"parent":"root","isPinned":false,"isCreator":false,"timestamp":1782086400,"evaluation":{"category":"Future content request","intent":"request","sentiment":"positive","priority":"medium","reasons":["requested topic","content roadmap signal"]}},{"id":"Ugw_5ViQaQ3k5p34BSp4AaABAg.AY82jCPbbAsAY9Z79b93F8","author":"@PaulJLipsky","authorId":"UCmeU2DYiVy80wMBGZzEWnbw","authorUrl":"https://www.youtube.com/@PaulJLipsky","text":"Great idea!","likeCount":1,"parent":"Ugw_5ViQaQ3k5p34BSp4AaABAg","isPinned":false,"isCreator":true,"timestamp":1782086400,"evaluation":{"category":"Creator reply","intent":"response","sentiment":"positive","priority":"low","reasons":["creator acknowledgement or answer"]}},{"id":"UgyOl-wHrAbHD3j7Bcd4AaABAg","author":"@bossmodemarketing","authorId":"UCFBCwWaQV6p9h4vLBeWpuaQ","authorUrl":"https://www.youtube.com/@bossmodemarketing","text":"great video. Tutorial on how you made those overlays, video presentation/ animations! they look amazing.","likeCount":0,"parent":"root","isPinned":false,"isCreator":false,"timestamp":1782086400,"evaluation":{"category":"Production or design question","intent":"question","sentiment":"positive","priority":"medium","reasons":["video production interest","tooling question"]}},{"id":"UgyOl-wHrAbHD3j7Bcd4AaABAg.AY7ss7Q4_rWAY9ZGN04bwD","author":"@PaulJLipsky","authorId":"UCmeU2DYiVy80wMBGZzEWnbw","authorUrl":"https://www.youtube.com/@PaulJLipsky","text":"It's in the works!","likeCount":0,"parent":"UgyOl-wHrAbHD3j7Bcd4AaABAg","isPinned":false,"isCreator":true,"timestamp":1782086400,"evaluation":{"category":"Creator reply","intent":"response","sentiment":"positive","priority":"low","reasons":["creator acknowledgement or answer"]}},{"id":"UgxOXFy-HutTUYA3tGJ4AaABAg","author":"@Code-With-Robby","authorId":"UCdukEcJCWR_ajtx6quftiNQ","authorUrl":"https://www.youtube.com/@Code-With-Robby","text":"Good stuff buddy","likeCount":0,"parent":"root","isPinned":false,"isCreator":false,"timestamp":1782086400,"evaluation":{"category":"Positive feedback","intent":"praise","sentiment":"positive","priority":"low","reasons":["viewer encouragement"]}},{"id":"UgxOXFy-HutTUYA3tGJ4AaABAg.AY7ioOaXtvNAY9ZHTEGVsO","author":"@PaulJLipsky","authorId":"UCmeU2DYiVy80wMBGZzEWnbw","authorUrl":"https://www.youtube.com/@PaulJLipsky","text":"Thanks :)","likeCount":0,"parent":"UgxOXFy-HutTUYA3tGJ4AaABAg","isPinned":false,"isCreator":true,"timestamp":1782086400,"evaluation":{"category":"Creator reply","intent":"response","sentiment":"positive","priority":"low","reasons":["creator acknowledgement or answer"]}},{"id":"Ugy9k6jW5SX0HRLHoqx4AaABAg","author":"@nitzanlevi5236","authorId":"UCm5QGzkEOg9B4wZI0xdhfLQ","authorUrl":"https://www.youtube.com/@nitzanlevi5236","text":"Great video! can you make another video on Claude cowork and Zapier that is not as simple as writing emails... I am considering for my coloring books business.","likeCount":1,"parent":"root","isPinned":false,"isCreator":false,"timestamp":1782086400,"evaluation":{"category":"Future content request","intent":"request","sentiment":"positive","priority":"medium","reasons":["requested topic","content roadmap signal"]}},{"id":"Ugy9k6jW5SX0HRLHoqx4AaABAg.AY7WLIlewaGAY7_zshcp0e","author":"@PaulJLipsky","authorId":"UCmeU2DYiVy80wMBGZzEWnbw","authorUrl":"https://www.youtube.com/@PaulJLipsky","text":"Thanks! That’s a great idea for a future deep dive.","likeCount":0,"parent":"Ugy9k6jW5SX0HRLHoqx4AaABAg","isPinned":false,"isCreator":true,"timestamp":1782086400,"evaluation":{"category":"Creator reply","intent":"response","sentiment":"positive","priority":"low","reasons":["creator acknowledgement or answer"]}},{"id":"UgwsQTvkRdHYr38D5LF4AaABAg","author":"@Khotwa_najah","authorId":"UCklxWFAhq_px2cFzKFtyqoQ","authorUrl":"https://www.youtube.com/@Khotwa_najah","text":"Great video and  animation, what did you used for animation ( for presentation) remotion dev?","likeCount":0,"parent":"root","isPinned":false,"isCreator":false,"timestamp":1782086400,"evaluation":{"category":"Production or design question","intent":"question","sentiment":"positive","priority":"medium","reasons":["video production interest","tooling question"]}},{"id":"UgwsQTvkRdHYr38D5LF4AaABAg.AY74s6qEWlYAY7a9UWBUSm","author":"@PaulJLipsky","authorId":"UCmeU2DYiVy80wMBGZzEWnbw","authorUrl":"https://www.youtube.com/@PaulJLipsky","text":"Claude Design","likeCount":1,"parent":"UgwsQTvkRdHYr38D5LF4AaABAg","isPinned":false,"isCreator":true,"timestamp":1782086400,"evaluation":{"category":"Creator reply","intent":"response","sentiment":"positive","priority":"low","reasons":["creator acknowledgement or answer"]}},{"id":"UgwIhPO651PZwcRLAVB4AaABAg","author":"@SomeRandom56","authorId":"UCH7PMa5selUTsjUz6Pt7-ZA","authorUrl":"https://www.youtube.com/@SomeRandom56","text":"Great Video keep it going","likeCount":0,"parent":"root","isPinned":false,"isCreator":false,"timestamp":1782086400,"evaluation":{"category":"Positive feedback","intent":"praise","sentiment":"positive","priority":"low","reasons":["viewer encouragement"]}},{"id":"UgwIhPO651PZwcRLAVB4AaABAg.AY6xuR8ufuWAY7aCSL_G3Y","author":"@PaulJLipsky","authorId":"UCmeU2DYiVy80wMBGZzEWnbw","authorUrl":"https://www.youtube.com/@PaulJLipsky","text":"Thanks, I will.","likeCount":0,"parent":"UgwIhPO651PZwcRLAVB4AaABAg","isPinned":false,"isCreator":true,"timestamp":1782086400,"evaluation":{"category":"Creator reply","intent":"response","sentiment":"positive","priority":"low","reasons":["creator acknowledgement or answer"]}}]};
+    const comments = data.comments;
+    const commentById = new Map(comments.map((comment) => [comment.id, comment]));
+    const threads = buildThreads(comments);
+    const cards = document.querySelector("#cards");
+    const empty = document.querySelector("#empty");
+    const search = document.querySelector("#search");
+    const creatorOnly = document.querySelector("#creatorOnly");
+    const mindmapGraph = document.querySelector("#mindmapGraph");
+    const themeBoard = document.querySelector("#themeBoard");
+    const neo4jStats = document.querySelector("#neo4jStats");
+    const cypherQueries = document.querySelector("#cypherQueries");
+    const categoryFilterState = document.querySelector("#categoryFilterState");
+    const clearCategoryFilter = document.querySelector("#clearCategoryFilter");
+    let selectedCategory = null;
+
+    document.querySelector("#totalComments").textContent = comments.length;
+    document.querySelector("#totalAuthors").textContent = new Set(comments.map((comment) => comment.author)).size;
+    document.querySelector("#creatorReplies").textContent = comments.filter((comment) => comment.isCreator).length;
+
+    const categoryDescriptions = {
+      "Creator promotion": "Sponsored or call-to-action content from the creator.",
+      "Creator reply": "Creator acknowledgements, answers, or follow-up notes.",
+      "Risk or limitation concern": "Safety, connector, model limitation, or reliability concerns.",
+      "Setup troubleshooting": "Questions about getting Zapier MCP or Claude connectors working.",
+      "Future content request": "Requested follow-up videos, comparisons, or deeper examples.",
+      "Usage testimonial": "Viewer reports of real-world Zapier MCP usage.",
+      "Production or design question": "Questions about overlays, animation, or presentation tooling.",
+      "Positive feedback": "Praise, encouragement, and general approval.",
+      "Canada and Mexico project context": "Viewer reactions to the project shift between Canada and Mexico.",
+      "Equipment, tools, or repairs": "Machines, tools, repairs, parts, and operating advice.",
+      "Audience support or praise": "Encouragement, praise, greetings, and community warmth.",
+      "House build or design planning": "House plans, site planning, structure, layout, and future build choices.",
+      "Land clearing or forestry": "Brush, trees, trails, vegetation, clearing, and land maintenance.",
+      "Safety, health, or site risk": "Safety, storms, drainage, health, and risk-reduction comments.",
+      "City bill or cost reaction": "Cost, bill, tax, fee, and fairness reactions.",
+      "Future content question": "Questions or requests about what comes next.",
+      "Pets or family moment": "Pet, family, or personal-life reactions.",
+      "General comment": "Comments that do not fit the stronger categories."
+    };
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function getInitials(author) {
+      return author.replace("@", "").slice(0, 2).toUpperCase() || "?";
+    }
+
+    function buildThreads(items) {
+      const roots = [];
+      const repliesByParent = new Map();
+
+      for (const item of items) {
+        if (item.parent === "root") {
+          roots.push(item);
+          continue;
+        }
+
+        const replies = repliesByParent.get(item.parent) || [];
+        replies.push(item);
+        repliesByParent.set(item.parent, replies);
+      }
+
+      const threadList = roots.map((root) => ({
+        id: root.id,
+        root,
+        replies: repliesByParent.get(root.id) || [],
+      }));
+
+      const knownRootIds = new Set(roots.map((root) => root.id));
+      for (const item of items) {
+        if (item.parent !== "root" && !knownRootIds.has(item.parent)) {
+          threadList.push({
+            id: item.id,
+            root: item,
+            replies: [],
+          });
+        }
+      }
+
+      return threadList;
+    }
+
+    function matchesCurrentFilters(comment, query) {
+      const matchesText = `${comment.author} ${comment.text}`.toLowerCase().includes(query);
+      const matchesCreator = !creatorOnly.checked || comment.isCreator;
+      const matchesCategory = !selectedCategory || comment.evaluation.category === selectedCategory;
+      return matchesText && matchesCreator && matchesCategory;
+    }
+
+    function render() {
+      const query = search.value.trim().toLowerCase();
+      const visibleThreads = threads
+        .map((thread) => {
+          const threadComments = [thread.root, ...thread.replies];
+          const matchingComments = threadComments.filter((comment) => matchesCurrentFilters(comment, query));
+          return {
+            ...thread,
+            matchingComments,
+          };
+        })
+        .filter((thread) => thread.matchingComments.length > 0);
+
+      cards.innerHTML = visibleThreads.map((thread) => renderThreadCard(thread)).join("");
+
+      empty.style.display = visibleThreads.length ? "none" : "block";
+      const visibleCommentCount = visibleThreads.reduce((sum, thread) => sum + thread.matchingComments.length, 0);
+      updateFilterState(visibleCommentCount, visibleThreads.length);
+    }
+
+    function renderThreadCard(thread) {
+      const root = thread.root;
+      const threadComments = [root, ...thread.replies];
+      const matchingIds = new Set(thread.matchingComments.map((comment) => comment.id));
+      const totalLikes = threadComments.reduce((sum, item) => sum + item.likeCount, 0);
+      const replyLabel = thread.replies.length === 1 ? "reply" : "replies";
+      const matchedLabel = thread.matchingComments.length === 1 ? "match" : "matches";
+      const rootMatches = matchingIds.has(root.id);
+
+      return `
+        <article class="card">
+          <div class="card-header">
+            <div class="avatar" aria-hidden="true">${escapeHtml(getInitials(root.author))}</div>
+            <div>
+              <h2 class="author">${escapeHtml(root.author)}</h2>
+              <p class="meta">Thread · ${thread.replies.length} ${replyLabel} · ${thread.matchingComments.length} ${matchedLabel} · ${totalLikes} total likes</p>
+            </div>
+            <span class="badge ${root.isCreator ? "creator" : ""}">${root.isCreator ? "Creator" : "Viewer"}</span>
+          </div>
+          <div class="comments">
+            <article class="thread-root ${rootMatches ? "comment-match" : ""}">
+              ${renderCommentBlock(root, "Original comment")}
+            </article>
+            ${thread.replies.length ? `
+              <div class="reply-stack">
+                ${thread.replies.map((reply) => `
+                  <article class="reply-item ${matchingIds.has(reply.id) ? "comment-match" : ""}">
+                    <p class="reply-author">Reply from ${escapeHtml(reply.author)} ${reply.isCreator ? '<span class="tag">Creator</span>' : ""}</p>
+                    ${renderCommentBlock(reply, "Reply")}
+                  </article>
+                `).join("")}
+              </div>
+            ` : ""}
+          </div>
+        </article>
+      `;
+    }
+
+    function renderCommentBlock(item, label) {
+      const likeLabel = `${item.likeCount} ${item.likeCount === 1 ? "like" : "likes"}`;
+      const priorityClass = `priority-${item.evaluation.priority}`;
+
+      return `
+        <blockquote>${escapeHtml(item.text)}</blockquote>
+        <div class="comment-meta">
+          <span>${label}</span>
+          <span>${likeLabel}</span>
+          <span class="tag">${escapeHtml(item.evaluation.category)}</span>
+          <span class="tag ${priorityClass}">${escapeHtml(item.evaluation.priority)} priority</span>
+        </div>
+      `;
+    }
+
+    function renderMindmap() {
+      const categories = Object.entries(data.classification.categories)
+        .sort((a, b) => b[1] - a[1]);
+      const center = { x: 50, y: 50 };
+      const radiusX = 36;
+      const radiusY = 34;
+      const maxCount = Math.max(...categories.map(([, count]) => count), 1);
+      const links = [];
+      const nodes = categories.map(([category, count], index) => {
+        const angle = -Math.PI / 2 + (index * Math.PI * 2) / categories.length;
+        const x = center.x + Math.cos(angle) * radiusX;
+        const y = center.y + Math.sin(angle) * radiusY;
+        const isMajor = count >= Math.max(2, Math.ceil(maxCount * 0.35));
+        links.push(`<line class="map-link ${isMajor ? "major" : ""}" x1="${center.x}" y1="${center.y}" x2="${x}" y2="${y}"></line>`);
+        return `
+          <article class="map-node ${isMajor ? "major" : ""}" style="--x: ${x}%; --y: ${y}%;" role="button" tabindex="0" data-category="${escapeHtml(category)}" aria-label="Show only ${escapeHtml(category)} comments">
+            <strong>${escapeHtml(category)}</strong>
+            <span class="map-count">${count}</span>
+            <small>${escapeHtml(categoryDescriptions[category] || "Detected audience signal.")}</small>
+          </article>
+        `;
+      }).join("");
+
+      document.querySelector("#mindmapGraph").innerHTML = `
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${links.join("")}</svg>
+        <article class="map-node core active" style="--x: ${center.x}%; --y: ${center.y}%;" role="button" tabindex="0" data-category="" aria-label="Show all comments">
+          <div>
+            <strong>Audience Signals</strong>
+            <small>${comments.length} classified comments</small>
+          </div>
+        </article>
+        ${nodes}
+      `;
+    }
+
+    function renderThemeBoard() {
+      const categories = Object.entries(data.classification.categories)
+        .sort((a, b) => b[1] - a[1]);
+
+      themeBoard.innerHTML = categories.map(([category, count]) => {
+        const categoryThreads = threads
+          .map((thread) => {
+            const threadComments = [thread.root, ...thread.replies];
+            const matches = threadComments.filter((comment) => comment.evaluation.category === category);
+            return { ...thread, matches };
+          })
+          .filter((thread) => thread.matches.length > 0)
+          .sort((a, b) => b.matches.length - a.matches.length || b.root.likeCount - a.root.likeCount)
+          .slice(0, 6);
+
+        const items = categoryThreads.map((thread) => {
+          const preview = thread.matches[0] || thread.root;
+          const replyLabel = thread.replies.length === 1 ? "reply" : "replies";
+          return `
+            <button class="lane-thread" type="button" data-category="${escapeHtml(category)}">
+              <strong>${escapeHtml(thread.root.author)}</strong>
+              <p>${escapeHtml(preview.text)}</p>
+              <small>${thread.matches.length} category matches · ${thread.replies.length} ${replyLabel}</small>
+            </button>
+          `;
+        }).join("");
+
+        return `
+          <section class="theme-lane">
+            <div class="lane-header">
+              <strong>${escapeHtml(category)}</strong>
+              <span>${count}</span>
+            </div>
+            <div class="lane-items">${items}</div>
+          </section>
+        `;
+      }).join("");
+    }
+
+    function renderNeo4jPanel() {
+      const rootComments = comments.filter((comment) => comment.parent === "root").length;
+      const replyEdges = comments.filter((comment) => comment.parent !== "root").length;
+      const authorCount = new Set(comments.map((comment) => comment.authorId || comment.author)).size;
+      const categoryCount = Object.keys(data.classification.categories).length;
+      const stats = [
+        ["1", "video"],
+        [comments.length, "comments"],
+        [authorCount, "authors"],
+        [rootComments, "root comments"],
+        [replyEdges, "reply edges"],
+        [categoryCount, "categories"],
+      ];
+
+      neo4jStats.innerHTML = stats.map(([value, label]) => `
+        <div class="neo4j-stat"><strong>${value}</strong><span>${escapeHtml(label)}</span></div>
+      `).join("");
+
+      const videoId = data.video.id.replaceAll("'", "\\'");
+      const queries = [
+        {
+          title: "Category Counts",
+          cypher: `MATCH (category:CommentCategory)<-[:IN_CATEGORY]-(comment:YouTubeComment)
+RETURN category.name AS category, count(comment) AS comments
+ORDER BY comments DESC;`,
+        },
+        {
+          title: "Video Comment Graph",
+          cypher: `MATCH (video:YouTubeVideo {id: '${videoId}'})-[:HAS_COMMENT]->(comment:YouTubeComment)
+OPTIONAL MATCH (author:YouTubeAuthor)-[:WROTE]->(comment)
+RETURN video, author, comment
+LIMIT 75;`,
+        },
+        {
+          title: "Reply Threads",
+          cypher: `MATCH (reply:YouTubeComment)-[:REPLY_TO]->(parent:YouTubeComment)
+OPTIONAL MATCH (author:YouTubeAuthor)-[:WROTE]->(reply)
+RETURN parent, reply, author
+LIMIT 75;`,
+        },
+      ];
+
+      cypherQueries.innerHTML = queries.map((query, index) => `
+        <article class="cypher-card">
+          <h3>${escapeHtml(query.title)}</h3>
+          <pre><code>${escapeHtml(query.cypher)}</code></pre>
+          <button class="copy-cypher" type="button" data-query-index="${index}">Copy Cypher</button>
+        </article>
+      `).join("");
+
+      cypherQueries.addEventListener("click", async (event) => {
+        const button = event.target.closest(".copy-cypher");
+        if (!button) return;
+        const query = queries[Number(button.getAttribute("data-query-index"))]?.cypher;
+        if (!query) return;
+        try {
+          await navigator.clipboard.writeText(query);
+          button.textContent = "Copied";
+          setTimeout(() => { button.textContent = "Copy Cypher"; }, 1400);
+        } catch {
+          button.textContent = "Copy failed";
+          setTimeout(() => { button.textContent = "Copy Cypher"; }, 1400);
+        }
+      });
+    }
+
+    function setCategoryFilter(category) {
+      selectedCategory = category || null;
+      updateMindmapSelection();
+      render();
+      cards.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function updateMindmapSelection() {
+      mindmapGraph.querySelectorAll(".map-node").forEach((node) => {
+        const category = node.getAttribute("data-category") || null;
+        node.classList.toggle("active", category === selectedCategory);
+      });
+    }
+
+    function updateFilterState(visibleCount, visibleThreadCount) {
+      if (selectedCategory) {
+        categoryFilterState.innerHTML = `Showing <strong>${visibleCount}</strong> matching comments across <strong>${visibleThreadCount}</strong> threads classified as <strong>${escapeHtml(selectedCategory)}</strong>`;
+        clearCategoryFilter.hidden = false;
+        return;
+      }
+
+      categoryFilterState.textContent = "Showing all classifications";
+      clearCategoryFilter.hidden = true;
+    }
+
+    search.addEventListener("input", render);
+    creatorOnly.addEventListener("change", render);
+    clearCategoryFilter.addEventListener("click", () => setCategoryFilter(null));
+    themeBoard.addEventListener("click", (event) => {
+      const item = event.target.closest(".lane-thread");
+      if (!item) return;
+      setCategoryFilter(item.getAttribute("data-category"));
+    });
+    mindmapGraph.addEventListener("click", (event) => {
+      const node = event.target.closest(".map-node");
+      if (!node) return;
+      setCategoryFilter(node.getAttribute("data-category"));
+    });
+    mindmapGraph.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const node = event.target.closest(".map-node");
+      if (!node) return;
+      event.preventDefault();
+      setCategoryFilter(node.getAttribute("data-category"));
+    });
+    renderMindmap();
+    renderThemeBoard();
+    renderNeo4jPanel();
+    render();
+  </script>
+</body>
+</html>
