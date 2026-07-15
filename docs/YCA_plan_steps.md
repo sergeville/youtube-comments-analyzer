@@ -56,7 +56,7 @@ The latest standalone validation included:
 - Dashboard health endpoint returned HTTP 200.
 - Neo4j context backfill and verification completed with zero context integrity errors.
 - Archon backend health returned healthy on `http://127.0.0.1:8181/health`.
-- Archon MCP is configured at `http://localhost:8051/sse`; current shell verification found port `8051` unavailable, so MCP runtime recovery remains open.
+- Archon MCP task evidence: the `archon-mcp` container is running; in-container `/health` returned healthy and `/sse` returned HTTP 200 with `text/event-stream`. Host `localhost:8051` remains unreachable from this shell, so Codex client-level MCP availability still needs confirmation after session reload.
 - Archon project registered: `YouTube Comments Analyzer` (`7cf8e16e-ae71-4f65-9687-fe99c4afa935`).
 - Archon coordination task registered: `YCA standalone coordination anchor` (`5fa72720-275d-47b0-a42c-5314f23852b8`).
 - Archon follow-up task created for MCP recovery: `fb881eeb-97ac-4d38-925c-5beee7608aee`.
