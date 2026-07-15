@@ -45,7 +45,10 @@
     },
     "linear": {
       "role": "optional milestone mirror",
-      "authoritative": false
+      "authoritative": false,
+      "projectId": "ed8e217d-e938-4363-a958-d19de752c66c",
+      "projectUrl": "https://linear.app/movetolinear/project/youtube-comments-analyzer-f3c339c79844",
+      "team": "MoveToLinear"
     }
   },
   "dataPolicy": {
