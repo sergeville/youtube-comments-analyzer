@@ -41,7 +41,7 @@ only.
 ### Phase 4: Retire duplicated ownership — pending deliberate cleanup
 
 - [x] Stop using `/Users/sergevilleneuve/Dev/Synapse/youtube-comments-analyzer` for new work; canonical guardrails are recorded in `AGENTS.md`, `project-manifest.json`, and `docs/YCA_phase4_retirement_audit.md`.
-- [ ] Archive or remove the nested checkout only in a separate approved Synapse cleanup change. The nested YCA-local dirty artifacts were preserved and cleaned on 2026-07-15; the retirement item is now in Archon Review and Linear In Review.
+- [x] Retire the nested checkout after operator approval. The old path was moved to Trash on 2026-07-15; the standalone checkout remains canonical.
 - [ ] Update active Synapse references to point to the canonical standalone checkout. Historical completed BMAD story references are preserved as audit history.
 
 Do not delete the nested checkout automatically. It may contain local artifacts or
@@ -70,3 +70,4 @@ The latest standalone validation included:
 - Linear issue `MOV-164` mirrors the nested checkout retirement review.
 - Phase 4 retirement audit added at `docs/YCA_phase4_retirement_audit.md`; dirty nested artifacts were preserved in `docs/archive/` and ignored local output archive `output/.retirement-audit/2026-07-15/`.
 - Retirement review evidence was sent to Archon task `8def6bde-fb0f-4562-8bc6-15b2af46d3ea` and Linear issue `MOV-164`; deletion remains approval-gated.
+- Operator retirement confirmation was recorded in Archon and Linear; unrelated Synapse worktree changes were preserved.
