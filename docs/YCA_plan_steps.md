@@ -25,21 +25,24 @@ Synapse tooling.
 - [x] Document Linear as an optional milestone mirror, not an execution authority.
 - [x] Link the operating context from the README.
 
-### Phase 3: Register coordination metadata — pending external operator action
+### Phase 3: Register coordination metadata — Archon complete; Linear optional
 
-- [ ] Create or select the YCA project in Archon.
-- [ ] Record the Archon project/task identifier in `project-manifest.json`.
-- [ ] Optionally create a Linear project mirror if milestone reporting is useful.
+- [x] Create or select the YCA project in Archon: `YouTube Comments Analyzer` (`7cf8e16e-ae71-4f65-9687-fe99c4afa935`).
+- [x] Record the Archon project/task identifier in `project-manifest.json`: task `YCA standalone coordination anchor` (`5fa72720-275d-47b0-a42c-5314f23852b8`).
+- [ ] Optionally create a Linear project mirror if milestone reporting is useful. Deferred; no Linear mirror is needed for current execution evidence.
 - [ ] Keep Linear status subordinate to Archon execution evidence.
 
-No Archon or Linear connector is available in this session, so these registration steps
-must be performed through the respective UIs or APIs by an authenticated operator.
+Archon registration was completed through the local Archon API on 2026-07-15. The
+backend is the confirmed registration path; MCP configuration exists in Codex, but the
+MCP endpoint must be rechecked after the Archon service is restarted. No Linear
+connector is available in this session, and Linear remains an optional milestone mirror
+only.
 
 ### Phase 4: Retire duplicated ownership — pending deliberate cleanup
 
-- [ ] Stop using `/Users/sergevilleneuve/Dev/Synapse/youtube-comments-analyzer` for new work.
-- [ ] Archive or remove the nested checkout only after confirming no uncommitted work remains.
-- [ ] Update any Synapse references to point to the canonical standalone checkout.
+- [x] Stop using `/Users/sergevilleneuve/Dev/Synapse/youtube-comments-analyzer` for new work; canonical guardrails are recorded in `AGENTS.md`, `project-manifest.json`, and `docs/YCA_phase4_retirement_audit.md`.
+- [ ] Archive or remove the nested checkout only in a separate approved Synapse cleanup change. The nested YCA-local dirty artifacts were preserved and cleaned on 2026-07-15.
+- [ ] Update active Synapse references to point to the canonical standalone checkout. Historical completed BMAD story references are preserved as audit history.
 
 Do not delete the nested checkout automatically. It may contain local artifacts or
 unpublished notes that need review first.
@@ -52,3 +55,8 @@ The latest standalone validation included:
 - `npm test` passed: 49 tests.
 - Dashboard health endpoint returned HTTP 200.
 - Neo4j context backfill and verification completed with zero context integrity errors.
+- Archon backend health returned healthy on `http://127.0.0.1:8181/health`.
+- Archon MCP is configured at `http://localhost:8051/sse`; current shell verification found port `8051` unavailable, so MCP runtime recovery remains open.
+- Archon project registered: `YouTube Comments Analyzer` (`7cf8e16e-ae71-4f65-9687-fe99c4afa935`).
+- Archon coordination task registered: `YCA standalone coordination anchor` (`5fa72720-275d-47b0-a42c-5314f23852b8`).
+- Phase 4 retirement audit added at `docs/YCA_phase4_retirement_audit.md`; dirty nested artifacts were preserved in `docs/archive/` and ignored local output archive `output/.retirement-audit/2026-07-15/`.

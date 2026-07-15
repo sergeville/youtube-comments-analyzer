@@ -18,7 +18,10 @@
       "start": "npm run neo4j:up",
       "stop": "npm run neo4j:down",
       "browser": "http://localhost:7474",
-      "ports": [7474, 7687]
+      "ports": [
+        7474,
+        7687
+      ]
     },
     "ollama": {
       "url": "http://localhost:11434",
@@ -29,7 +32,11 @@
   "integration": {
     "archon": {
       "role": "active execution and evidence source",
-      "taskKey": null
+      "taskKey": "5fa72720-275d-47b0-a42c-5314f23852b8",
+      "projectId": "7cf8e16e-ae71-4f65-9687-fe99c4afa935",
+      "registeredAt": "2026-07-15T12:32:13Z",
+      "projectName": "YouTube Comments Analyzer",
+      "taskName": "YCA standalone coordination anchor"
     },
     "linear": {
       "role": "optional milestone mirror",
@@ -40,5 +47,13 @@
     "graphDomain": "YouTube comments only",
     "generatedOutputTracked": false,
     "secretsTracked": false
-  }
+  },
+  "deprecatedCheckouts": [
+    {
+      "path": "/Users/sergevilleneuve/Dev/Synapse/youtube-comments-analyzer",
+      "status": "non-canonical-clean-preserved",
+      "reason": "Nested Synapse checkout is historical only; YCA-local dirty docs/output were preserved and cleaned. Do not use it for new YCA work.",
+      "checkedAt": "2026-07-15T12:45:00Z"
+    }
+  ]
 }

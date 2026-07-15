@@ -50,3 +50,7 @@ Keep these roles explicit. Do not create competing task state in multiple system
 5. Record operational evidence before claiming completion.
 
 Ask before destructive data removal, changing the Neo4j schema, using paid or remote APIs, or publishing private artifacts.
+
+## Deprecated duplicate checkout
+
+`/Users/sergevilleneuve/Dev/Synapse/youtube-comments-analyzer` is a historical nested checkout only. Do not use it for new YCA code, data, configuration, or validation. If that path appears in a task, treat it as legacy context and redirect work to `/Users/sergevilleneuve/Dev/youtube-comments-analyzer` unless the operator explicitly asks for a read-only comparison or a cleanup audit.
