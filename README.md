@@ -266,6 +266,11 @@ npm test        # unit tests (no live database needed)
 
 This folder is intentionally standalone. It is not registered as a Synapse runtime service.
 
+Project operating rules and local runtime ownership are documented in
+[`AGENTS.md`](AGENTS.md), with machine-readable service and integration metadata in
+[`project-manifest.json`](project-manifest.json). The standalone migration tracker is
+[`docs/YCA_plan_steps.md`](docs/YCA_plan_steps.md).
+
 Neo4j here holds the **YouTube comment domain only**. Synapse's project/task knowledge
 graph and agent memory live in Postgres/Supabase (Archon), by design — see
 `docs/neo4j/README.md`.
