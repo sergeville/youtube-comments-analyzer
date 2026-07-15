@@ -59,4 +59,7 @@ The latest standalone validation included:
 - Archon MCP is configured at `http://localhost:8051/sse`; current shell verification found port `8051` unavailable, so MCP runtime recovery remains open.
 - Archon project registered: `YouTube Comments Analyzer` (`7cf8e16e-ae71-4f65-9687-fe99c4afa935`).
 - Archon coordination task registered: `YCA standalone coordination anchor` (`5fa72720-275d-47b0-a42c-5314f23852b8`).
+- Archon follow-up task created for MCP recovery: `fb881eeb-97ac-4d38-925c-5beee7608aee`.
+- Archon follow-up task created for active Synapse reference audit: `0fa968e2-ddf7-48af-a38f-82b699d94eb4`.
+- Archon follow-up task created for nested checkout retirement approval: `8def6bde-fb0f-4562-8bc6-15b2af46d3ea`.
 - Phase 4 retirement audit added at `docs/YCA_phase4_retirement_audit.md`; dirty nested artifacts were preserved in `docs/archive/` and ignored local output archive `output/.retirement-audit/2026-07-15/`.

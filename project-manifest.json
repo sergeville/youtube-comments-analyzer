@@ -36,7 +36,12 @@
       "projectId": "7cf8e16e-ae71-4f65-9687-fe99c4afa935",
       "registeredAt": "2026-07-15T12:32:13Z",
       "projectName": "YouTube Comments Analyzer",
-      "taskName": "YCA standalone coordination anchor"
+      "taskName": "YCA standalone coordination anchor",
+      "followUpTaskIds": [
+        "fb881eeb-97ac-4d38-925c-5beee7608aee",
+        "0fa968e2-ddf7-48af-a38f-82b699d94eb4",
+        "8def6bde-fb0f-4562-8bc6-15b2af46d3ea"
+      ]
     },
     "linear": {
       "role": "optional milestone mirror",
