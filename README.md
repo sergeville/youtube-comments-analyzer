@@ -45,6 +45,20 @@ ollama pull llama3.2:latest
 
 The default mind-map model is `llama3.2:latest`. Change it with `YCA_OLLAMA_MODEL` if another local model is installed.
 
+To use Gemma 4 instead:
+
+```bash
+ollama pull gemma4:latest
+```
+
+Add this setting to `.env` and restart `npm run serve`:
+
+```text
+YCA_OLLAMA_MODEL=gemma4:latest
+```
+
+The model setting affects only optional mind-map generation. Comment extraction, classification, transcript documents, and Neo4j relationships do not require Ollama.
+
 ### 2. Configure The Project
 
 Clone the repository and enter the project directory:
