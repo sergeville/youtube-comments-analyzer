@@ -1,0 +1,44 @@
+{
+  "name": "youtube-comments-analyzer",
+  "displayName": "YouTube Comments Analyzer",
+  "repository": "https://github.com/sergeville/youtube-comments-analyzer.git",
+  "canonicalPath": "/Users/sergevilleneuve/Dev/youtube-comments-analyzer",
+  "runtime": {
+    "start": "npm run serve",
+    "health": "http://127.0.0.1:4478/health",
+    "port": 4478
+  },
+  "validation": {
+    "check": "npm run check",
+    "test": "npm test",
+    "neo4jVerify": "npm run neo4j:verify"
+  },
+  "optionalServices": {
+    "neo4j": {
+      "start": "npm run neo4j:up",
+      "stop": "npm run neo4j:down",
+      "browser": "http://localhost:7474",
+      "ports": [7474, 7687]
+    },
+    "ollama": {
+      "url": "http://localhost:11434",
+      "modelEnv": "YCA_OLLAMA_MODEL",
+      "optional": true
+    }
+  },
+  "integration": {
+    "archon": {
+      "role": "active execution and evidence source",
+      "taskKey": null
+    },
+    "linear": {
+      "role": "optional milestone mirror",
+      "authoritative": false
+    }
+  },
+  "dataPolicy": {
+    "graphDomain": "YouTube comments only",
+    "generatedOutputTracked": false,
+    "secretsTracked": false
+  }
+}
