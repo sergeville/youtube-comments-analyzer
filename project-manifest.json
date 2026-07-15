@@ -48,7 +48,8 @@
       "authoritative": false,
       "projectId": "ed8e217d-e938-4363-a958-d19de752c66c",
       "projectUrl": "https://linear.app/movetolinear/project/youtube-comments-analyzer-f3c339c79844",
-      "team": "MoveToLinear"
+      "team": "MoveToLinear",
+      "issueIds": ["MOV-162", "MOV-163", "MOV-164"]
     }
   },
   "dataPolicy": {

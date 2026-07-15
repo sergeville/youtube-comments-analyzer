@@ -64,4 +64,7 @@ The latest standalone validation included:
 - Archon follow-up task created for nested checkout retirement approval: `8def6bde-fb0f-4562-8bc6-15b2af46d3ea`.
 - Linear milestone mirror created: `YouTube Comments Analyzer` (`ed8e217d-e938-4363-a958-d19de752c66c`) in team `MoveToLinear`.
 - Linear project: https://linear.app/movetolinear/project/youtube-comments-analyzer-f3c339c79844
+- Linear issue `MOV-162` mirrors the Archon MCP verification task.
+- Linear issue `MOV-163` mirrors the active Synapse reference audit.
+- Linear issue `MOV-164` mirrors the nested checkout retirement review.
 - Phase 4 retirement audit added at `docs/YCA_phase4_retirement_audit.md`; dirty nested artifacts were preserved in `docs/archive/` and ignored local output archive `output/.retirement-audit/2026-07-15/`.
