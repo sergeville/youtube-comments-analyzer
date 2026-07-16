@@ -2109,6 +2109,7 @@ ${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard", links
   });
 
   async function buildDocumentFor(videoId) {
+    const restore = beginRowJob(videoId, "builddoc", "Building…");
     statusEl.className = "status muted";
     statusEl.textContent = "Building illustrated document for " + videoId + "… (captures a frame per chapter)";
     renderSteps([["document", "Build document (images)"]]);
@@ -2127,10 +2128,13 @@ ${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard", links
     } catch (err) {
       statusEl.className = "status err";
       statusEl.textContent = "Failed: " + err.message;
+    } finally {
+      restore();
     }
   }
 
   async function buildMindmapFor(videoId) {
+    const restore = beginRowJob(videoId, "buildmm", "Building…");
     statusEl.className = "status muted";
     statusEl.textContent = "Building mind map for " + videoId + "… (local Ollama, ~1-2 min)";
     renderSteps([["mindmap", "Build mind map (Ollama)"]]);
@@ -2149,10 +2153,25 @@ ${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard", links
     } catch (err) {
       statusEl.className = "status err";
       statusEl.textContent = "Failed: " + err.message;
+    } finally {
+      restore();
     }
   }
 
+  // Give a job launched from a table row immediate local feedback (the #status bar sits at
+  // the top of the page, far from the button) and bring the status/progress into view.
+  // Returns a restore function for the button.
+  function beginRowJob(videoId, cls, busyLabel) {
+    const btn = rows.querySelector("." + cls + '[data-id="' + videoId + '"]');
+    const original = btn ? btn.textContent : "";
+    if (btn) { btn.disabled = true; btn.textContent = busyLabel; btn.style.opacity = "0.6"; }
+    statusEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    return function () { if (btn) { btn.disabled = false; btn.textContent = original; btn.style.opacity = ""; } };
+  }
+
   async function buildConceptsFor(videoId) {
+    if (!window.confirm("Build the concept graph for " + videoId + "?\n\nThis runs one local Ollama call per paragraph (several minutes for a long video) and blocks other jobs until it finishes.")) return;
+    const restore = beginRowJob(videoId, "buildconcepts", "Building…");
     statusEl.className = "status muted";
     statusEl.textContent = "Building concept graph for " + videoId + "… (local Ollama, one call per paragraph — this can take several minutes)";
     renderSteps([["mindmap", "Build concept graph (Neo4j + Ollama)"]]);
@@ -2171,6 +2190,8 @@ ${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard", links
     } catch (err) {
       statusEl.className = "status err";
       statusEl.textContent = "Failed: " + err.message;
+    } finally {
+      restore();
     }
   }
 
