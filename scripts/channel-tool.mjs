@@ -11,6 +11,8 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
+import { ytdlpAuthArgs } from "./ytdlp-auth.mjs";
+
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_DIR = path.resolve(SCRIPT_DIR, "..");
 const DEFAULT_OUT_DIR = path.join(PROJECT_DIR, "output");
@@ -83,7 +85,7 @@ export function parseChannelDump(data) {
 }
 
 function runYtDlpChannel(target) {
-  const result = spawnSync("yt-dlp", ["--flat-playlist", "-J", target], {
+  const result = spawnSync("yt-dlp", ["--flat-playlist", "-J", ...ytdlpAuthArgs(), target], {
     encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"],
   });
   if (result.status !== 0) throw new Error(`yt-dlp failed.\n${result.stderr || result.stdout}`);

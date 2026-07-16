@@ -12,6 +12,8 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
+import { ytdlpAuthArgs } from "./ytdlp-auth.mjs";
+
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_DIR = path.resolve(SCRIPT_DIR, "..");
 const DEFAULT_OUT_DIR = path.join(PROJECT_DIR, "output");
@@ -71,6 +73,7 @@ function runYtDlpSubs({ canonicalUrl, videoId, outDir }) {
     "--sub-langs", "en.*,en,en-orig",
     "--sub-format", "json3",
     "--write-info-json",
+    ...ytdlpAuthArgs(),
     "--paths", outDir,
     "-o", `${videoId}.%(ext)s`,
     canonicalUrl,

@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { deriveCommentContext, resolveCommentContext } from "./comment-context.mjs";
+import { ytdlpAuthArgs } from "./ytdlp-auth.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_DIR = path.resolve(SCRIPT_DIR, "..");
@@ -152,6 +153,7 @@ function runYtDlp({ canonicalUrl, videoId, outDir }) {
       "--skip-download",
       "--write-info-json",
       "--write-comments",
+      ...ytdlpAuthArgs(),
       "--paths",
       outDir,
       "-o",
