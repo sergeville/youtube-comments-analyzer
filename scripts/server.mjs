@@ -309,6 +309,19 @@ async function neo4jVideoIds() {
   }
 }
 
+// Best-effort: which videos have a document mindmap (Chapters) in Neo4j — i.e. a "Concept
+// map" is viewable at /graph/3d. null when Neo4j is unavailable.
+async function videosWithGraphMindmap() {
+  try {
+    if (!process.env.NEO4J_USER || !process.env.NEO4J_PASSWORD) return null;
+    const config = resolveConfig({});
+    const rows = await cypherRows(config, "MATCH (v:YouTubeVideo)-[:HAS_CHAPTER]->() RETURN DISTINCT v.id");
+    return new Set(rows.map((row) => row[0]));
+  } catch {
+    return null;
+  }
+}
+
 function hasNeo4jConfig() {
   return Boolean(process.env.NEO4J_USER && process.env.NEO4J_PASSWORD);
 }
@@ -1055,6 +1068,11 @@ async function handleVideos(res) {
       video.inNeo4j = inNeo4j ? inNeo4j.has(video.videoId) : null;
     }
   }
+  // Flag videos whose document mindmap is in the graph, so the row can link to /graph/3d.
+  const graphMindmaps = await videosWithGraphMindmap();
+  for (const video of videos) {
+    video.hasGraphMindmap = graphMindmaps ? graphMindmaps.has(video.videoId) : false;
+  }
   sendJson(res, 200, {
     ok: true,
     neo4jAvailable: graphVideos !== null || videos.some((video) => video.inNeo4j !== null),
@@ -1317,6 +1335,11 @@ export function renderGraph3dPage() {
     sel.innerHTML = d.videos.map(function (v) {
       return '<option value="' + escapeText(v.id) + '">' + escapeText((v.title || v.id).slice(0, 60)) + " (" + v.chapters + " ch)</option>";
     }).join("");
+    // Honor a deep link from the dashboard: /graph/3d?videoId=…&mode=…
+    var qs = new URLSearchParams(location.search);
+    var wantV = qs.get("videoId"), wantM = qs.get("mode");
+    if (wantV) { for (var i = 0; i < sel.options.length; i++) { if (sel.options[i].value === wantV) { sel.value = wantV; break; } } }
+    if (wantM && ["concepts", "paragraphs", "both"].indexOf(wantM) >= 0) el("mode").value = wantM;
     loadGraph(true);
   }).catch(function (e) { statusEl.textContent = "Error: " + e.message; });
 
@@ -1842,11 +1865,12 @@ ${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard", links
         if (v.hasTranscript) links.push('<a class="report" href="/transcript/' + id + '" target="_blank" rel="noreferrer">Transcript</a>');
         if (v.hasDocument) links.push('<a class="report" href="/document/' + id + '" target="_blank" rel="noreferrer">Document</a>');
         if (v.hasMindmap) links.push('<a class="report" href="/mindmap/' + id + '" target="_blank" rel="noreferrer">Mind map</a>');
+        if (v.hasGraphMindmap) links.push('<a class="report" href="/graph/3d?videoId=' + id + '&mode=both" target="_blank" rel="noreferrer">Concept map</a>');
         const pages = links.length ? links.join(' <span class="muted">·</span> ') : (isGraphOnly ? '<span class="muted">graph only</span>' : dash);
         const actions = [
           v.hasDocument ? "" : '<button type="button" class="builddoc" data-id="' + esc(v.videoId) + '">Build doc</button>',
           v.hasComments && !v.hasMindmap ? '<button type="button" class="buildmm" data-id="' + esc(v.videoId) + '">Mind map</button>' : "",
-          v.hasTranscript && data.neo4jAvailable ? '<button type="button" class="buildconcepts" data-id="' + esc(v.videoId) + '">Concepts</button>' : "",
+          v.hasTranscript && data.neo4jAvailable ? '<button type="button" class="buildconcepts" data-id="' + esc(v.videoId) + '">' + (v.hasGraphMindmap ? "Rebuild concepts" : "Concepts") + '</button>' : "",
           isGraphOnly ? "" : '<button type="button" class="remove" data-id="' + esc(v.videoId) + '">Remove</button>',
         ].join("");
         return "<tr>" +
