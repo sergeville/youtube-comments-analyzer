@@ -1101,15 +1101,25 @@ async function handleGraphSchema(res) {
   }
 }
 
-// Overview subgraph for one video: Video -> Chapters (real HAS_CHAPTER + NEXT) and a
-// derived, weighted Chapter -[:MENTIONS]-> Concept edge that collapses the 715 paragraphs
-// into the readable chapter/concept mindmap. Concepts are capped by total weight; the whole
-// result is capped at GRAPH_NODE_CAP with a `truncated` flag (fit-doc §5).
+// Overview subgraph for one video. Three views (?mode=):
+//   concepts   — Video -> Chapters, plus a derived weighted Chapter-[:MENTIONS]->Concept
+//                edge that collapses paragraphs into the readable chapter/concept map.
+//   paragraphs — Video -> Chapters -> Paragraphs, each Paragraph shown by its SUMMARY (its
+//                "context of the paragraph"), with real HAS_PARAGRAPH + paragraph NEXT.
+//   both       — paragraphs plus real Paragraph-[:MENTIONS]->Concept edges.
+// Optional ?chapter=<index> scopes to one chapter (avoids truncation for the paragraph
+// views). Capped at GRAPH_NODE_CAP with a `truncated` flag (fit-doc §5).
 async function handleGraphOverview(req, res, url) {
   const config = neo4jReadConfig();
   if (!config) return sendJson(res, 400, { ok: false, error: "Set NEO4J_USER and NEO4J_PASSWORD." });
-  const limit = Math.max(1, Number(url.searchParams.get("limit")) || GRAPH_NODE_CAP);
   const maxConcepts = Math.max(0, Number(url.searchParams.get("maxConcepts")) || GRAPH_MAX_CONCEPTS);
+  const mode = ["concepts", "paragraphs", "both"].includes(url.searchParams.get("mode")) ? url.searchParams.get("mode") : "concepts";
+  // Paragraph views need more room than the concept overview (a chapter can hold 120+
+  // paragraphs, each with its concepts); the concept view stays tight at GRAPH_NODE_CAP.
+  const defaultCap = mode === "concepts" ? GRAPH_NODE_CAP : GRAPH_NODE_CAP + 500;
+  const limit = Math.max(1, Number(url.searchParams.get("limit")) || defaultCap);
+  const chapterParam = url.searchParams.get("chapter");
+  const chapterIndex = chapterParam != null && chapterParam !== "" && chapterParam !== "all" ? Number(chapterParam) : null;
   try {
     let videoId = (url.searchParams.get("videoId") || "").trim();
     if (!videoId) {
@@ -1118,13 +1128,9 @@ async function handleGraphOverview(req, res, url) {
     }
     if (!videoId || !VIDEO_ID.test(videoId)) return sendJson(res, 400, { ok: false, error: "No graphed video to show." });
 
-    const [videoRow, chapters, chapterConcepts] = await Promise.all([
+    const [videoRow, chapters] = await Promise.all([
       cypherRows(config, "MATCH (v:YouTubeVideo {id:$id}) RETURN v.id, v.title, v.url", { id: videoId }),
       cypherRows(config, "MATCH (v:YouTubeVideo {id:$id})-[:HAS_CHAPTER]->(ch:Chapter) RETURN ch.id, ch.index, ch.title ORDER BY ch.index", { id: videoId }),
-      cypherRows(config, `
-        MATCH (v:YouTubeVideo {id:$id})-[:HAS_CHAPTER]->(ch:Chapter)-[:HAS_PARAGRAPH]->(:Paragraph)-[:MENTIONS]->(co:Concept)
-        WITH ch, co, count(*) AS weight
-        RETURN ch.id AS chId, co.name AS concept, weight ORDER BY weight DESC`, { id: videoId }),
     ]);
     if (!videoRow.length) return sendJson(res, 404, { ok: false, error: "Video not found in the graph." });
 
@@ -1132,23 +1138,67 @@ async function handleGraphOverview(req, res, url) {
     const rawLinks = [];
     const [vid, vtitle, vurl] = videoRow[0];
     rawNodes.push({ id: vid, primaryLabel: "YouTubeVideo", name: vtitle || vid, properties: { url: vurl } });
-    for (const [chId, chIndex, chTitle] of chapters) {
+    const shownChapters = chapterIndex == null ? chapters : chapters.filter(([, i]) => i === chapterIndex);
+    for (const [chId, chIndex, chTitle] of shownChapters) {
       rawNodes.push({ id: chId, primaryLabel: "Chapter", name: chTitle || `Chapter ${chIndex}`, properties: { index: chIndex } });
       rawLinks.push({ source: vid, target: chId, type: "HAS_CHAPTER" });
     }
-    for (let i = 0; i < chapters.length - 1; i++) rawLinks.push({ source: chapters[i][0], target: chapters[i + 1][0], type: "NEXT" });
+    if (chapterIndex == null) {
+      for (let i = 0; i < chapters.length - 1; i++) rawLinks.push({ source: chapters[i][0], target: chapters[i + 1][0], type: "NEXT" });
+    }
+    const chapterFilter = chapterIndex == null ? "" : "WHERE ch.index = $chapter";
 
-    // Keep only the top-weight concepts, then their chapter edges (derived MENTIONS).
-    const conceptWeight = new Map();
-    for (const [, concept, weight] of chapterConcepts) conceptWeight.set(concept, (conceptWeight.get(concept) || 0) + weight);
-    const topConcepts = new Set([...conceptWeight.entries()].sort((a, b) => b[1] - a[1]).slice(0, maxConcepts).map(([name]) => name));
-    for (const name of topConcepts) rawNodes.push({ id: `concept:${name}`, primaryLabel: "Concept", name, properties: { totalWeight: conceptWeight.get(name) } });
-    for (const [chId, concept, weight] of chapterConcepts) {
-      if (topConcepts.has(concept)) rawLinks.push({ source: chId, target: `concept:${concept}`, type: "MENTIONS", weight });
+    if (mode === "concepts") {
+      // Derived, weighted Chapter -> Concept (top concepts by weight).
+      const chapterConcepts = await cypherRows(config, `
+        MATCH (v:YouTubeVideo {id:$id})-[:HAS_CHAPTER]->(ch:Chapter)-[:HAS_PARAGRAPH]->(:Paragraph)-[:MENTIONS]->(co:Concept)
+        ${chapterFilter}
+        WITH ch, co, count(*) AS weight
+        RETURN ch.id AS chId, co.name AS concept, weight ORDER BY weight DESC`, { id: videoId, chapter: chapterIndex });
+      const conceptWeight = new Map();
+      for (const [, concept, weight] of chapterConcepts) conceptWeight.set(concept, (conceptWeight.get(concept) || 0) + weight);
+      const topConcepts = new Set([...conceptWeight.entries()].sort((a, b) => b[1] - a[1]).slice(0, maxConcepts).map(([name]) => name));
+      for (const name of topConcepts) rawNodes.push({ id: `concept:${name}`, primaryLabel: "Concept", name, properties: { totalWeight: conceptWeight.get(name) } });
+      for (const [chId, concept, weight] of chapterConcepts) {
+        if (topConcepts.has(concept)) rawLinks.push({ source: chId, target: `concept:${concept}`, type: "MENTIONS", weight });
+      }
+    } else {
+      // Paragraph views: each Paragraph shown by its summary (its context).
+      const paragraphs = await cypherRows(config, `
+        MATCH (v:YouTubeVideo {id:$id})-[:HAS_CHAPTER]->(ch:Chapter)-[:HAS_PARAGRAPH]->(p:Paragraph)
+        ${chapterFilter}
+        RETURN ch.id AS chId, p.id AS pId, p.index AS pIndex, p.start AS start, p.summary AS summary, left(p.text, 160) AS snippet
+        ORDER BY ch.index, p.index`, { id: videoId, chapter: chapterIndex });
+      const byChapter = new Map();
+      for (const [chId, pId, pIndex, start, summary, snippet] of paragraphs) {
+        const name = summary && String(summary).trim() ? summary : `${snippet}…`;
+        rawNodes.push({ id: pId, primaryLabel: "Paragraph", name, properties: { start, summary: summary || null, index: pIndex } });
+        rawLinks.push({ source: chId, target: pId, type: "HAS_PARAGRAPH" });
+        if (!byChapter.has(chId)) byChapter.set(chId, []);
+        byChapter.get(chId).push(pId);
+      }
+      for (const ids of byChapter.values()) {
+        for (let i = 0; i < ids.length - 1; i++) rawLinks.push({ source: ids[i], target: ids[i + 1], type: "NEXT" });
+      }
+      if (mode === "both") {
+        const mentions = await cypherRows(config, `
+          MATCH (v:YouTubeVideo {id:$id})-[:HAS_CHAPTER]->(ch:Chapter)-[:HAS_PARAGRAPH]->(p:Paragraph)-[:MENTIONS]->(co:Concept)
+          ${chapterFilter}
+          RETURN p.id AS pId, co.name AS concept`, { id: videoId, chapter: chapterIndex });
+        const concepts = new Set();
+        for (const [pId, concept] of mentions) {
+          if (!concepts.has(concept)) { concepts.add(concept); rawNodes.push({ id: `concept:${concept}`, primaryLabel: "Concept", name: concept, properties: {} }); }
+          rawLinks.push({ source: pId, target: `concept:${concept}`, type: "MENTIONS" });
+        }
+      }
     }
 
     const graph = normalizeGraph(rawNodes, rawLinks, { limit });
-    sendJson(res, 200, { ok: true, videoId, title: vtitle, ...graph });
+    sendJson(res, 200, {
+      ok: true, videoId, title: vtitle, mode, chapter: chapterIndex,
+      chapters: chapters.map(([, index, title]) => ({ index, title })),
+      ...graph,
+    });
   } catch (error) {
     sendJson(res, 502, { ok: false, error: `Neo4j read failed: ${error.message}` });
   }
@@ -1161,7 +1211,7 @@ function renderGraph3dPage() {
     channel: "#fb7185", other: "#cbd5e1",
   };
   const legend = Object.entries(GROUP_COLORS)
-    .filter(([g]) => ["video", "chapter", "concept"].includes(g))
+    .filter(([g]) => ["video", "chapter", "paragraph", "concept"].includes(g))
     .map(([g, c]) => `<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px;"><span style="width:10px;height:10px;border-radius:50%;background:${c};display:inline-block;"></span>${g}</span>`)
     .join("");
   return `<!doctype html>
@@ -1190,6 +1240,12 @@ function renderGraph3dPage() {
   ${renderTopNav({ title: "3D Graph", current: "graph3d", links: [{ key: "graph3d", label: "3D Graph", href: "/graph/3d" }] })}
   <div class="toolbar">
     <label>Video <select id="video"></select></label>
+    <label>View <select id="mode">
+      <option value="concepts">Concepts</option>
+      <option value="paragraphs">Paragraph context</option>
+      <option value="both">Both</option>
+    </select></label>
+    <label>Chapter <select id="chapter"><option value="all">All chapters</option></select></label>
     <button id="reload" type="button">Reload</button>
     <button id="reset" type="button">Reset camera</button>
     <span id="legend">${legend}</span>
@@ -1231,16 +1287,26 @@ function renderGraph3dPage() {
   }
   function escapeText(s) { return String(s).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
 
-  function loadGraph(videoId) {
+  function params() {
+    var q = "?videoId=" + encodeURIComponent(el("video").value) + "&mode=" + encodeURIComponent(el("mode").value);
+    if (el("chapter").value !== "all") q += "&chapter=" + encodeURIComponent(el("chapter").value);
+    return q;
+  }
+
+  function loadGraph(repopulateChapters) {
     statusEl.textContent = "Loading graph…";
     inspectorEl.style.display = "none";
-    var q = videoId ? "?videoId=" + encodeURIComponent(videoId) : "";
-    fetch("/api/graph/overview" + q).then(function (r) { return r.json(); }).then(function (d) {
+    fetch("/api/graph/overview" + params()).then(function (r) { return r.json(); }).then(function (d) {
       if (!d.ok) { statusEl.textContent = "Error: " + (d.error || "failed"); return; }
+      if (repopulateChapters && d.chapters) {
+        el("chapter").innerHTML = '<option value="all">All chapters</option>' + d.chapters.map(function (c) {
+          return '<option value="' + c.index + '">' + escapeText((c.title || ("Chapter " + c.index)).slice(0, 40)) + "</option>";
+        }).join("");
+      }
       Graph.graphData({ nodes: d.nodes, links: d.links });
       sizeGraph();
       statusEl.textContent = d.metadata.nodeCount + " nodes · " + d.metadata.relationshipCount + " links" +
-        (d.metadata.truncated ? " · ⚠ truncated" : "") + " — " + (d.title || d.videoId);
+        (d.metadata.truncated ? " · ⚠ truncated (pick a chapter to see all)" : "") + " — " + (d.title || d.videoId);
     }).catch(function (e) { statusEl.textContent = "Error: " + e.message; });
   }
 
@@ -1251,11 +1317,13 @@ function renderGraph3dPage() {
     sel.innerHTML = d.videos.map(function (v) {
       return '<option value="' + escapeText(v.id) + '">' + escapeText((v.title || v.id).slice(0, 60)) + " (" + v.chapters + " ch)</option>";
     }).join("");
-    loadGraph(sel.value);
+    loadGraph(true);
   }).catch(function (e) { statusEl.textContent = "Error: " + e.message; });
 
-  el("video").addEventListener("change", function (e) { loadGraph(e.target.value); });
-  el("reload").addEventListener("click", function () { loadGraph(el("video").value); });
+  el("video").addEventListener("change", function () { el("chapter").value = "all"; loadGraph(true); });
+  el("mode").addEventListener("change", function () { loadGraph(false); });
+  el("chapter").addEventListener("change", function () { loadGraph(false); });
+  el("reload").addEventListener("click", function () { loadGraph(false); });
   el("reset").addEventListener("click", function () { Graph.zoomToFit(600, 40); });
 </script>
 </body></html>`;
