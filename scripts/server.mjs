@@ -29,6 +29,8 @@ const CHANNEL = path.join(SCRIPT_DIR, "channel-tool.mjs");
 const CHANNELS_DIR = path.join(OUT_DIR, "channels");
 const IMPORTER = path.join(SCRIPT_DIR, "neo4j-import-youtube-comments.mjs");
 const CHANNEL_IMPORTER = path.join(SCRIPT_DIR, "neo4j-import-channel.mjs");
+const DOCUMENT_GRAPH = path.join(SCRIPT_DIR, "document-graph-tool.mjs");
+const DOCUMENT_IMPORTER = path.join(SCRIPT_DIR, "neo4j-import-document.mjs");
 
 const HOST = "127.0.0.1";
 const PORT = Number(process.env.SERVER_PORT || process.env.PORT || 4478);
@@ -150,6 +152,58 @@ export function listVideos(outDir = OUT_DIR) {
   return videos;
 }
 
+function withVideoDefaults(video) {
+  const videoId = video.videoId || video.id;
+  return {
+    videoId,
+    title: video.title || videoId,
+    url: video.url || `https://www.youtube.com/watch?v=${videoId}`,
+    channel: video.channel || null,
+    channelId: video.channelId || null,
+    handle: video.handle || null,
+    hasComments: Boolean(video.hasComments),
+    comments: video.comments ?? null,
+    profile: video.profile ?? null,
+    hasReport: Boolean(video.hasReport),
+    hasTranscript: Boolean(video.hasTranscript),
+    hasDocument: Boolean(video.hasDocument),
+    hasMindmap: Boolean(video.hasMindmap),
+    htmlFile: video.htmlFile || `${videoId}.comments.html`,
+    transcriptFile: video.transcriptFile || `${videoId}.transcript.html`,
+    documentFile: video.documentFile || `${videoId}.document.html`,
+    updatedAt: video.updatedAt || "1970-01-01T00:00:00.000Z",
+    inNeo4j: video.inNeo4j ?? null,
+    source: video.source || "local",
+  };
+}
+
+export function mergeVideos(localVideos, graphVideos) {
+  const byId = new Map();
+  for (const graphVideo of graphVideos || []) {
+    const video = withVideoDefaults({ ...graphVideo, source: "graph", inNeo4j: true });
+    byId.set(video.videoId, video);
+  }
+  for (const localVideo of localVideos || []) {
+    const local = withVideoDefaults(localVideo);
+    const graph = byId.get(local.videoId);
+    byId.set(local.videoId, {
+      ...graph,
+      ...local,
+      comments: local.comments ?? graph?.comments ?? null,
+      profile: local.profile ?? graph?.profile ?? null,
+      channel: local.channel ?? graph?.channel ?? null,
+      channelId: local.channelId ?? graph?.channelId ?? null,
+      handle: local.handle ?? graph?.handle ?? null,
+      inNeo4j: graph ? true : local.inNeo4j,
+      source: graph ? "local+graph" : "local",
+    });
+  }
+  return [...byId.values()].sort((a, b) => {
+    if (a.updatedAt !== b.updatedAt) return a.updatedAt < b.updatedAt ? 1 : -1;
+    return String(a.title || "").localeCompare(String(b.title || ""));
+  });
+}
+
 // Extract the JSON object a child script prints on stdout (tolerates surrounding noise).
 export function parseToolJson(stdout) {
   const text = String(stdout || "").trim();
@@ -249,6 +303,45 @@ async function neo4jVideoIds() {
     const config = resolveConfig({});
     const rows = await cypherRows(config, "MATCH (v:YouTubeVideo) RETURN v.id");
     return new Set(rows.map((row) => row[0]));
+  } catch {
+    return null;
+  }
+}
+
+function hasNeo4jConfig() {
+  return Boolean(process.env.NEO4J_USER && process.env.NEO4J_PASSWORD);
+}
+
+async function listNeo4jVideos() {
+  try {
+    if (!hasNeo4jConfig()) return null;
+    const config = resolveConfig({});
+    const rows = await cypherRows(config, `
+      MATCH (v:YouTubeVideo)
+      OPTIONAL MATCH (ch:YouTubeChannel)-[:PUBLISHED]->(v)
+      OPTIONAL MATCH (v)-[:HAS_COMMENT]->(comment:YouTubeComment)
+      OPTIONAL MATCH (v)-[:USES_CLASSIFICATION_PROFILE]->(profile:ClassificationProfile)
+      WITH v, ch, count(DISTINCT comment) AS comments, collect(DISTINCT profile.name) AS profiles
+      RETURN v.id, v.title, v.url, coalesce(v.channel, ch.name),
+             coalesce(v.channelId, ch.id), coalesce(v.handle, ch.handle),
+             comments, profiles[0], toString(v.updatedAt)
+      ORDER BY toLower(coalesce(v.title, v.id))
+    `);
+    return rows
+      .filter(([id]) => id)
+      .map(([videoId, title, url, channel, channelId, handle, comments, profile, updatedAt]) => ({
+        videoId,
+        title,
+        url,
+        channel,
+        channelId,
+        handle,
+        comments,
+        profile,
+        updatedAt: updatedAt || "1970-01-01T00:00:00.000Z",
+        inNeo4j: true,
+        source: "graph",
+      }));
   } catch {
     return null;
   }
@@ -463,6 +556,33 @@ async function buildDocumentStreaming(url, send) {
   return { ok: false, error };
 }
 
+// Build the document graph (chapters -> paragraphs -> concepts) and import it into Neo4j,
+// streaming progress. Structural by default; YCA_DOCUMENT_GRAPH_SEMANTIC=1 adds Ollama
+// concepts (slow — one model call per paragraph). Best-effort: never throws to the caller.
+async function importDocumentGraph(videoId, forwardProgress, send, opts = {}) {
+  send({ stage: "mindmap", status: "running", message: "Building document mindmap" });
+  // opts.semantic forces concept extraction (the on-demand button); otherwise honor the env flag.
+  const semantic = opts.semantic ?? (process.env.YCA_DOCUMENT_GRAPH_SEMANTIC === "1");
+  const graphArgs = [DOCUMENT_GRAPH, videoId, ...(semantic ? ["--semantic"] : [])];
+  const build = await runStreaming(process.execPath, graphArgs, forwardProgress, { YCA_PROGRESS: "1" });
+  const built = parseToolJson(build.stdout);
+  if (build.code !== 0 || !built?.ok) {
+    const error = (built?.error || build.stderr.trim() || `exit ${build.code}`).slice(0, 200);
+    send({ stage: "mindmap", status: "error", message: error });
+    return { ok: false, error };
+  }
+  const imp = await run(process.execPath, [DOCUMENT_IMPORTER, built.graphJsonPath]);
+  const impResult = parseToolJson(imp.stdout);
+  if (imp.code === 0 && impResult?.ok) {
+    const parts = `${built.chapters} chapters · ${built.paragraphs} paragraphs${built.concepts ? ` · ${built.concepts} concepts` : ""}`;
+    send({ stage: "mindmap", status: "done", message: parts });
+    return { ok: true, chapters: built.chapters, paragraphs: built.paragraphs, concepts: built.concepts };
+  }
+  const error = (impResult?.error || imp.stderr.trim() || `exit ${imp.code}`).slice(0, 200);
+  send({ stage: "mindmap", status: "error", message: error });
+  return { ok: false, error };
+}
+
 // Run the channel tool, streaming its progress; returns a channel summary.
 async function buildChannelStreaming(url, send) {
   send({ stage: "channel", status: "running", message: "Listing channel videos" });
@@ -566,17 +686,137 @@ export function listChannels(dir = CHANNELS_DIR) {
   return channels;
 }
 
+function withChannelDefaults(channel) {
+  return {
+    channelId: channel.channelId,
+    name: channel.name || channel.channelId,
+    handle: channel.handle || null,
+    url: channel.url || null,
+    avatar: channel.avatar ?? null,
+    subscribers: channel.subscribers ?? null,
+    totalViews: channel.totalViews ?? null,
+    videoCount: channel.videoCount ?? 0,
+    analyzedCount: channel.analyzedCount ?? 0,
+    source: channel.source || "local",
+  };
+}
+
+export function mergeChannels(localChannels, graphChannels) {
+  const byId = new Map();
+  for (const graphChannel of graphChannels || []) {
+    if (!graphChannel.channelId) continue;
+    const channel = withChannelDefaults({ ...graphChannel, source: "graph" });
+    byId.set(channel.channelId, channel);
+  }
+  for (const localChannel of localChannels || []) {
+    if (!localChannel.channelId) continue;
+    const local = withChannelDefaults(localChannel);
+    const graph = byId.get(local.channelId);
+    byId.set(local.channelId, {
+      ...graph,
+      ...local,
+      handle: local.handle ?? graph?.handle ?? null,
+      url: local.url ?? graph?.url ?? null,
+      avatar: local.avatar ?? graph?.avatar ?? null,
+      subscribers: local.subscribers ?? graph?.subscribers ?? null,
+      totalViews: local.totalViews ?? graph?.totalViews ?? null,
+      videoCount: Math.max(local.videoCount || 0, graph?.videoCount || 0),
+      analyzedCount: Math.max(local.analyzedCount || 0, graph?.analyzedCount || 0),
+      source: graph ? "local+graph" : "local",
+    });
+  }
+  return [...byId.values()].sort((a, b) =>
+    (b.subscribers || 0) - (a.subscribers || 0) ||
+    String(a.name || "").localeCompare(String(b.name || "")));
+}
+
+async function listNeo4jChannels() {
+  try {
+    if (!hasNeo4jConfig()) return null;
+    const config = resolveConfig({});
+    const rows = await cypherRows(config, `
+      MATCH (ch:YouTubeChannel)
+      OPTIONAL MATCH (ch)-[:PUBLISHED]->(v:YouTubeVideo)
+      WITH ch, count(DISTINCT v) AS videoCount
+      OPTIONAL MATCH (ch)-[:PUBLISHED]->(processed:YouTubeVideo)-[:HAS_COMMENT]->(:YouTubeComment)
+      RETURN ch.id, ch.name, ch.handle, ch.url, ch.avatar, ch.subscribers,
+             ch.totalViews, videoCount, count(DISTINCT processed)
+      ORDER BY coalesce(ch.subscribers, 0) DESC, toLower(coalesce(ch.name, ch.id))
+    `);
+    return rows
+      .filter(([id]) => id)
+      .map(([channelId, name, handle, url, avatar, subscribers, totalViews, videoCount, analyzedCount]) => ({
+        channelId,
+        name,
+        handle,
+        url,
+        avatar,
+        subscribers,
+        totalViews,
+        videoCount,
+        analyzedCount,
+        source: "graph",
+      }));
+  } catch {
+    return null;
+  }
+}
+
 function readChannel(channelId) {
   const p = path.join(CHANNELS_DIR, `${channelId}.channel.json`);
   if (!fs.existsSync(p)) return null;
   try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return null; }
 }
 
-function handleChannel(res, channelId) {
+async function readNeo4jChannel(channelId) {
+  try {
+    if (!hasNeo4jConfig()) return null;
+    const config = resolveConfig({});
+    const rows = await cypherRows(config, `
+      MATCH (ch:YouTubeChannel {id: $channelId})
+      OPTIONAL MATCH (ch)-[:PUBLISHED]->(v:YouTubeVideo)
+      OPTIONAL MATCH (v)-[:HAS_COMMENT]->(comment:YouTubeComment)
+      OPTIONAL MATCH (v)-[:USES_CLASSIFICATION_PROFILE]->(profile:ClassificationProfile)
+      WITH ch, v, count(DISTINCT comment) AS comments, collect(DISTINCT profile.name) AS profiles
+      RETURN ch.id, ch.name, ch.handle, ch.url, ch.avatar, ch.subscribers,
+             ch.totalViews, v.id, v.title, v.url, v.duration, comments, profiles[0]
+      ORDER BY toLower(coalesce(v.title, v.id))
+    `, { channelId });
+    if (!rows.length || !rows[0][0]) return null;
+    const [id, name, handle, url, avatar, subscribers, totalViews] = rows[0];
+    return {
+      channelId: id,
+      name,
+      handle,
+      url,
+      avatar,
+      subscribers,
+      totalViews,
+      videos: rows
+        .filter((row) => row[7])
+        .map((row) => ({
+          id: row[7],
+          title: row[8] || row[7],
+          url: row[9] || `https://www.youtube.com/watch?v=${row[7]}`,
+          duration: row[10] ?? null,
+          comments: row[11] ?? 0,
+          profile: row[12] ?? null,
+        })),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function handleChannel(res, channelId) {
   if (!CHANNEL_ID.test(channelId)) return sendJson(res, 400, { ok: false, error: "Bad channel id." });
-  const c = readChannel(channelId);
+  const c = readChannel(channelId) || await readNeo4jChannel(channelId);
   if (!c) return sendJson(res, 404, { ok: false, error: "Channel not found." });
-  const videos = (c.videos || []).map((v) => ({ ...v, ...processedState(v.id) }));
+  const videos = (c.videos || []).map((v) => {
+    const id = v.id || v.videoId;
+    const state = processedState(id);
+    return { ...v, id, ...state, hasComments: state.hasComments || (v.comments || 0) > 0 };
+  });
   sendJson(res, 200, {
     ok: true,
     channel: { channelId: c.channelId, name: c.name, handle: c.handle, url: c.url, videoCount: videos.length },
@@ -615,6 +855,41 @@ async function handleMindmap(req, res) {
   try {
     send({ stage: "start" });
     const mindmap = await buildMindmapStreaming(videoId, send);
+    if (!mindmap.ok) { send({ stage: "error", error: mindmap.error }); return res.end(); }
+    send({ stage: "complete", videoId, mindmap });
+    res.end();
+  } catch (error) {
+    send({ stage: "error", error: error.message });
+    res.end();
+  } finally {
+    busy = false;
+  }
+}
+
+// On-demand: build the SEMANTIC document mindmap (concepts + summaries via Ollama) for a
+// video already fetched, and import it into Neo4j. Complements the add pipeline, which is
+// structural-only by default so it stays fast.
+async function handleConcepts(req, res) {
+  if (busy) {
+    return sendJson(res, 409, { ok: false, error: "Another job is already running. Try again shortly." });
+  }
+  let body;
+  try { body = JSON.parse(await readBody(req) || "{}"); } catch { return sendJson(res, 400, { ok: false, error: "Invalid JSON body." }); }
+  const videoId = (body.videoId || "").trim();
+  if (!VIDEO_ID.test(videoId)) return sendJson(res, 400, { ok: false, error: "Bad video id." });
+  if (!process.env.NEO4J_USER || !process.env.NEO4J_PASSWORD) {
+    return sendJson(res, 400, { ok: false, error: "Set NEO4J_USER and NEO4J_PASSWORD to build the concept graph." });
+  }
+  if (!fs.existsSync(path.join(OUT_DIR, `${videoId}.info.json`))) {
+    return sendJson(res, 400, { ok: false, error: "Fetch this video's transcript first." });
+  }
+  res.writeHead(200, { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-cache", "connection": "keep-alive" });
+  const send = (event) => res.write(`data: ${JSON.stringify(event)}\n\n`);
+  const forwardProgress = sseProgress(send);
+  busy = true;
+  try {
+    send({ stage: "start" });
+    const mindmap = await importDocumentGraph(videoId, forwardProgress, send, { semantic: true });
     if (!mindmap.ok) { send({ stage: "error", error: mindmap.error }); return res.end(); }
     send({ stage: "complete", videoId, mindmap });
     res.end();
@@ -699,12 +974,26 @@ async function handleAdd(req, res) {
       send({ stage: "neo4j", status: "skipped", message: "Neo4j credentials not set" });
     }
 
+    // Import the document mindmap (chapters -> paragraphs -> concepts) into Neo4j.
+    // Needs captions + Neo4j creds; independent of the visual document. Structural by
+    // default (fast); set YCA_DOCUMENT_GRAPH_SEMANTIC=1 to add Ollama concepts (slow).
+    // Best-effort: a failure here never fails the extraction that already succeeded.
+    let mindmap = null;
+    if (process.env.NEO4J_USER && process.env.NEO4J_PASSWORD && transcript?.ok && transcript.hasTranscript) {
+      mindmap = await importDocumentGraph(video.videoId, forwardProgress, send);
+    } else {
+      const why = !(process.env.NEO4J_USER && process.env.NEO4J_PASSWORD)
+        ? "Neo4j credentials not set"
+        : "no transcript to map";
+      send({ stage: "mindmap", status: "skipped", message: why });
+    }
+
     let document = null;
     if (buildDoc) {
       document = await buildDocumentStreaming(url, send);
     }
 
-    send({ stage: "complete", video, neo4j, transcript, document });
+    send({ stage: "complete", video, neo4j, mindmap, transcript, document });
     res.end();
   } catch (error) {
     send({ stage: "error", error: error.message });
@@ -756,12 +1045,28 @@ async function handleDocument(req, res) {
 }
 
 async function handleVideos(res) {
-  const videos = listVideos();
-  const inNeo4j = await neo4jVideoIds();
-  for (const video of videos) {
-    video.inNeo4j = inNeo4j ? inNeo4j.has(video.videoId) : null;
+  const localVideos = listVideos();
+  const graphVideos = await listNeo4jVideos();
+  const videos = graphVideos ? mergeVideos(localVideos, graphVideos) : localVideos;
+  if (!graphVideos) {
+    const inNeo4j = await neo4jVideoIds();
+    for (const video of videos) {
+      video.inNeo4j = inNeo4j ? inNeo4j.has(video.videoId) : null;
+    }
   }
-  sendJson(res, 200, { ok: true, neo4jAvailable: inNeo4j !== null, videos });
+  sendJson(res, 200, {
+    ok: true,
+    neo4jAvailable: graphVideos !== null || videos.some((video) => video.inNeo4j !== null),
+    graphBacked: graphVideos !== null,
+    videos,
+  });
+}
+
+async function handleChannels(res) {
+  const localChannels = listChannels();
+  const graphChannels = await listNeo4jChannels();
+  const channels = graphChannels ? mergeChannels(localChannels, graphChannels) : localChannels;
+  sendJson(res, 200, { ok: true, neo4jAvailable: graphChannels !== null, channels });
 }
 
 const server = http.createServer(async (req, res) => {
@@ -775,19 +1080,22 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && !requirePostToken(req, res)) return;
     if (req.method === "GET" && route === "/api/videos") return void handleVideos(res);
-    if (req.method === "GET" && route === "/api/channels") return sendJson(res, 200, { ok: true, channels: listChannels() });
+    if (req.method === "GET" && route === "/api/channels") return void handleChannels(res);
     if (req.method === "POST" && route === "/api/add") return void handleAdd(req, res);
     if (req.method === "POST" && route === "/api/channel") return void handleAddChannel(req, res);
     if (req.method === "POST" && route === "/api/document") return void handleDocument(req, res);
     if (req.method === "POST" && route === "/api/mindmap") return void handleMindmap(req, res);
+    if (req.method === "POST" && route === "/api/concepts") return void handleConcepts(req, res);
     if (req.method === "POST" && route === "/api/remove") return void handleRemove(req, res);
 
     const channelApi = route.match(/^\/api\/channel\/([^/]+)$/);
-    if (req.method === "GET" && channelApi) return handleChannel(res, decodeURIComponent(channelApi[1]));
+    if (req.method === "GET" && channelApi) return void handleChannel(res, decodeURIComponent(channelApi[1]));
     const channelPage = route.match(/^\/channel\/([^/]+)$/);
     if (req.method === "GET" && channelPage) {
       const cid = decodeURIComponent(channelPage[1]);
-      if (!CHANNEL_ID.test(cid) || !readChannel(cid)) return sendJson(res, 404, { ok: false, error: "Channel not found." });
+      if (!CHANNEL_ID.test(cid)) return sendJson(res, 404, { ok: false, error: "Channel not found." });
+      const channel = readChannel(cid) || await readNeo4jChannel(cid);
+      if (!channel) return sendJson(res, 404, { ok: false, error: "Channel not found." });
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       return res.end(renderChannelPage(cid));
     }
@@ -1100,8 +1408,8 @@ function renderIndexPage() {
   button.remove { min-height: 30px; padding: 0 10px; border: 1px solid rgba(248,113,113,0.4); border-radius: 7px; background: transparent; color: #fca5a5; font-size: 0.78rem; font-weight: 700; }
   button.remove:hover { background: rgba(248,113,113,0.12); }
   .linkbtn { min-height: auto; padding: 2px 8px; margin-left: 8px; border: 1px solid rgba(153,246,228,0.4); border-radius: 6px; background: transparent; color: #99f6e4; font-size: 0.82rem; font-weight: 800; text-decoration: none; }
-  button.builddoc, button.buildmm { min-height: 30px; padding: 0 10px; margin-right: 6px; border: 1px solid rgba(148,163,184,0.4); border-radius: 7px; background: transparent; color: #cbd5e1; font-size: 0.78rem; font-weight: 700; }
-  button.builddoc:hover, button.buildmm:hover { border-color: #99f6e4; color: #99f6e4; }
+  button.builddoc, button.buildmm, button.buildconcepts { min-height: 30px; padding: 0 10px; margin-right: 6px; border: 1px solid rgba(148,163,184,0.4); border-radius: 7px; background: transparent; color: #cbd5e1; font-size: 0.78rem; font-weight: 700; }
+  button.builddoc:hover, button.buildmm:hover, button.buildconcepts:hover { border-color: #99f6e4; color: #99f6e4; }
   .opt { display: inline-flex; align-items: center; gap: 7px; color: #94a3b8; font-size: 0.82rem; width: 100%; margin-top: 2px; }
   .opt input { width: 15px; height: 15px; }
   .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
@@ -1256,18 +1564,25 @@ ${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard" })}
       const dash = '<span class="muted">—</span>';
       function rowHtml(v) {
         let neo = dash;
-        if (v.hasComments && data.neo4jAvailable) {
+        if (data.neo4jAvailable && v.inNeo4j != null) {
           neo = v.inNeo4j
             ? '<span class="pill in">in graph</span>'
             : '<span class="pill out">not imported</span>';
         }
+        const isGraphOnly = v.source === "graph";
         const id = encodeURIComponent(v.videoId);
         const links = [];
         if (v.hasReport) links.push('<a class="report" href="/report/' + id + '" target="_blank" rel="noreferrer">Comments</a>');
         if (v.hasTranscript) links.push('<a class="report" href="/transcript/' + id + '" target="_blank" rel="noreferrer">Transcript</a>');
         if (v.hasDocument) links.push('<a class="report" href="/document/' + id + '" target="_blank" rel="noreferrer">Document</a>');
         if (v.hasMindmap) links.push('<a class="report" href="/mindmap/' + id + '" target="_blank" rel="noreferrer">Mind map</a>');
-        const pages = links.length ? links.join(' <span class="muted">·</span> ') : dash;
+        const pages = links.length ? links.join(' <span class="muted">·</span> ') : (isGraphOnly ? '<span class="muted">graph only</span>' : dash);
+        const actions = [
+          v.hasDocument ? "" : '<button type="button" class="builddoc" data-id="' + esc(v.videoId) + '">Build doc</button>',
+          v.hasComments && !v.hasMindmap ? '<button type="button" class="buildmm" data-id="' + esc(v.videoId) + '">Mind map</button>' : "",
+          v.hasTranscript && data.neo4jAvailable ? '<button type="button" class="buildconcepts" data-id="' + esc(v.videoId) + '">Concepts</button>' : "",
+          isGraphOnly ? "" : '<button type="button" class="remove" data-id="' + esc(v.videoId) + '">Remove</button>',
+        ].join("");
         return "<tr>" +
           "<td>" + esc(v.title) + "</td>" +
           '<td><a class="report" href="' + esc(v.url) + '" target="_blank" rel="noreferrer">' + esc(v.videoId) + "</a></td>" +
@@ -1275,11 +1590,7 @@ ${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard" })}
           "<td>" + (v.profile ? esc(v.profile) : dash) + "</td>" +
           "<td>" + neo + "</td>" +
           "<td>" + pages + "</td>" +
-          "<td>" +
-            (v.hasDocument ? "" : '<button type="button" class="builddoc" data-id="' + esc(v.videoId) + '">Build doc</button>') +
-            (v.hasComments && !v.hasMindmap ? '<button type="button" class="buildmm" data-id="' + esc(v.videoId) + '">Mind map</button>' : "") +
-            '<button type="button" class="remove" data-id="' + esc(v.videoId) + '">Remove</button>' +
-          "</td>" +
+          "<td>" + (actions || dash) + "</td>" +
         "</tr>";
       }
 
@@ -1346,6 +1657,8 @@ ${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard" })}
     if (bd) { buildDocumentFor(bd.getAttribute("data-id")); return; }
     const mm = event.target.closest(".buildmm");
     if (mm) { buildMindmapFor(mm.getAttribute("data-id")); return; }
+    const cc = event.target.closest(".buildconcepts");
+    if (cc) { buildConceptsFor(cc.getAttribute("data-id")); return; }
   });
 
   // --- Progress stepper -----------------------------------------------------
@@ -1358,6 +1671,7 @@ ${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard" })}
     classify: "classify", render: "report", extracted: "report", neo4j: "import",
     "document-fetch": "document", "document-extract": "document", "document-frames": "document", "document-render": "document",
     "mindmap-collect": "mindmap", "mindmap-analyze": "mindmap", "mindmap-render": "mindmap",
+    "document-graph-load": "mindmap", "document-graph-context": "mindmap", "document-graph-build": "mindmap",
     "channel-fetch": "channel", "channel-parse": "channel",
     "channel-graph-schema": "graph", "channel-graph-node": "graph", "channel-graph-videos": "graph",
   };
@@ -1371,6 +1685,7 @@ ${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard" })}
       ["classify", "Classify comments"],
       ["report", "Build report"],
       ["import", "Import to Neo4j"],
+      ["mindmap", "Build mindmap (Neo4j)"],
     ];
     if (includeDoc) steps.push(["document", "Build document (images)"]);
     return steps;
@@ -1560,6 +1875,28 @@ ${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard" })}
         statusEl.className = "status ok";
         statusEl.innerHTML = "Built mind map for " + esc(videoId) + " — " + (mm.themes || 0) + " themes (" + esc(mm.sentiment || "") + "). " +
           '<a class="linkbtn" href="/mindmap/' + encodeURIComponent(videoId) + '" target="_blank" rel="noreferrer">Open</a>';
+        await loadVideos();
+      } else {
+        statusEl.className = "status err";
+        statusEl.textContent = "Failed: " + ((finalEvent && finalEvent.error) || "the build did not complete");
+      }
+    } catch (err) {
+      statusEl.className = "status err";
+      statusEl.textContent = "Failed: " + err.message;
+    }
+  }
+
+  async function buildConceptsFor(videoId) {
+    statusEl.className = "status muted";
+    statusEl.textContent = "Building concept graph for " + videoId + "… (local Ollama, one call per paragraph — this can take several minutes)";
+    renderSteps([["mindmap", "Build concept graph (Neo4j + Ollama)"]]);
+    try {
+      const finalEvent = await postStream("/api/concepts", { videoId });
+      if (finalEvent && finalEvent.stage === "complete") {
+        const mm = finalEvent.mindmap || {};
+        statusEl.className = "status ok";
+        statusEl.textContent = "Imported concept graph for " + esc(videoId) + " — " +
+          (mm.chapters || 0) + " chapters, " + (mm.paragraphs || 0) + " paragraphs, " + (mm.concepts || 0) + " concepts.";
         await loadVideos();
       } else {
         statusEl.className = "status err";

@@ -118,11 +118,43 @@ npm run serve
 
 Open [http://127.0.0.1:4478](http://127.0.0.1:4478). Keep the dashboard terminal open while using the site. The dashboard binds to loopback only.
 
-The included sample data is available immediately. To stop the dashboard, press `Ctrl-C`. Stop Neo4j when finished:
+The included sample data is available immediately. When Neo4j credentials are configured
+and the graph is reachable, the dashboard also reads channel/video inventory from Neo4j.
+That means the home page can show graph-only videos even when no local
+`output/<videoId>.comments.json` report exists for them yet.
+
+To stop the dashboard, press `Ctrl-C`. Stop Neo4j when finished:
 
 ```bash
 npm run neo4j:down
 ```
+
+## Dashboard Data Sources
+
+The dashboard deliberately merges two local data sources:
+
+- `output/` files are the source for generated artifacts: comments JSON/HTML,
+  transcript pages, documents, mind maps, and other report files.
+- Neo4j is the source for graph inventory when available: channels,
+  `(:YouTubeVideo)` nodes, `(:YouTubeChannel)-[:PUBLISHED]->(:YouTubeVideo)`
+  links, import status, and comment counts already present in the graph.
+
+Rows labeled or represented as graph-only are present in Neo4j but do not yet have
+local generated report files. They can still link to YouTube and appear under their
+channel, but comments reports, transcript/document links, and mind maps only appear
+after the corresponding `output/` artifact exists.
+
+If the dashboard shows fewer videos than expected, check both sources before changing
+Docker:
+
+```bash
+npm run neo4j:verify
+find output -maxdepth 1 -name '*.comments.json'
+```
+
+A healthy Neo4j container usually does not need a rebuild. Rebuild/restart Docker only
+for database infrastructure problems; restart `npm run serve` when changing dashboard
+code or environment settings.
 
 ### 5. Extract And Build A Report
 

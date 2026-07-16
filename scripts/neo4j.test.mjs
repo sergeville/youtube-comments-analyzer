@@ -471,8 +471,9 @@ test("ensureSchema: issues all statements and is safe to re-run", async () => {
   await ensureSchema(LOCAL, { fetchImpl: wrapped }); // idempotent second run
   // Each run = all constraint/index statements + one version MERGE.
   assert.equal(calls, (SCHEMA_STATEMENTS.length + 1) * 2);
-  assert.equal(SCHEMA_VERSION, 3);
+  assert.equal(SCHEMA_VERSION, 4);
   assert.ok(SCHEMA_STATEMENTS.some((statement) => statement.includes("comment_context_key")));
+  assert.ok(SCHEMA_STATEMENTS.some((statement) => statement.includes("document_chapter_id")));
 });
 
 test("countRows: sums data rows across results", () => {
