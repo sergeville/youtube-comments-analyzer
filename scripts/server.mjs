@@ -624,7 +624,7 @@ async function handleAddChannel(req, res) {
   try { body = JSON.parse(await readBody(req) || "{}"); } catch { return sendJson(res, 400, { ok: false, error: "Invalid JSON body." }); }
   const url = (body.url || "").trim();
   if (!isChannelUrl(url)) {
-    return sendJson(res, 400, { ok: false, error: "Provide a valid YouTube channel URL (e.g. https://www.youtube.com/@handle)." });
+    return sendJson(res, 400, { ok: false, error: "Provide a valid YouTuber URL (e.g. https://www.youtube.com/@handle)." });
   }
   res.writeHead(200, { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-cache", "connection": "keep-alive" });
   const send = (event) => res.write(`data: ${JSON.stringify(event)}\n\n`);
@@ -812,7 +812,7 @@ async function readNeo4jChannel(channelId) {
 async function handleChannel(res, channelId) {
   if (!CHANNEL_ID.test(channelId)) return sendJson(res, 400, { ok: false, error: "Bad channel id." });
   const c = readChannel(channelId) || await readNeo4jChannel(channelId);
-  if (!c) return sendJson(res, 404, { ok: false, error: "Channel not found." });
+  if (!c) return sendJson(res, 404, { ok: false, error: "YouTuber not found." });
   const videos = (c.videos || []).map((v) => {
     const id = v.id || v.videoId;
     const state = processedState(id);
@@ -1359,9 +1359,9 @@ const server = http.createServer(async (req, res) => {
     const channelPage = route.match(/^\/channel\/([^/]+)$/);
     if (req.method === "GET" && channelPage) {
       const cid = decodeURIComponent(channelPage[1]);
-      if (!CHANNEL_ID.test(cid)) return sendJson(res, 404, { ok: false, error: "Channel not found." });
+      if (!CHANNEL_ID.test(cid)) return sendJson(res, 404, { ok: false, error: "YouTuber not found." });
       const channel = readChannel(cid) || await readNeo4jChannel(cid);
-      if (!channel) return sendJson(res, 404, { ok: false, error: "Channel not found." });
+      if (!channel) return sendJson(res, 404, { ok: false, error: "YouTuber not found." });
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       return res.end(renderChannelPage(cid));
     }
@@ -1391,7 +1391,7 @@ function renderChannelPage(channelId) {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Channel — YouTube Comments Analyzer</title>
+<title>YouTuber — YouTube Comments Analyzer</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -1431,7 +1431,7 @@ ${channelNavBar(channelId)}
 <main>
   <div class="chead">
     <div>
-      <h1 id="cname">Channel</h1>
+      <h1 id="cname">YouTuber</h1>
       <p class="sub" id="csub"></p>
     </div>
     <button id="processAll" type="button">Process all unprocessed</button>
@@ -1439,10 +1439,10 @@ ${channelNavBar(channelId)}
   <div id="status" class="status">Loading…</div>
 
   <section class="graphwrap">
-    <h2>Channel graph <span class="muted" style="font-weight:400;font-size:0.8rem;">— Channel → Videos in Neo4j</span></h2>
+    <h2>YouTuber graph <span class="muted" style="font-weight:400;font-size:0.8rem;">— YouTuber → Videos in Neo4j</span></h2>
     <svg id="chgraph" viewBox="0 0 820 520" preserveAspectRatio="xMidYMid meet"></svg>
     <div class="glegend">
-      <span><i style="background:#f5a623"></i>Channel</span>
+      <span><i style="background:#f5a623"></i>YouTuber</span>
       <span><i style="background:#57c7a3"></i>Video with comments</span>
       <span><i style="background:#4c8eda"></i>Transcript/Document</span>
       <span><i style="background:#64748b"></i>Not processed</span>
@@ -1541,7 +1541,7 @@ RETURN ch, v, c, a LIMIT 200;</pre><button class="ghost copy" type="button">Copy
     lbl.setAttribute("x",cx); lbl.setAttribute("y",cy+40); lbl.setAttribute("text-anchor","middle");
     lbl.setAttribute("fill","#e2e8f0"); lbl.setAttribute("font-size","12"); lbl.setAttribute("font-weight","800");
     lbl.setAttribute("paint-order","stroke"); lbl.setAttribute("stroke","rgba(2,6,23,0.8)"); lbl.setAttribute("stroke-width","3");
-    lbl.textContent=channelName||"Channel";
+    lbl.textContent=channelName||"YouTuber";
     nodeG.appendChild(lbl);
     var note=document.querySelector("#gnote");
     if(note) note.textContent = shown.length<vids.length ? ("showing "+shown.length+" of "+vids.length+" videos") : (vids.length+" videos");
@@ -1557,7 +1557,7 @@ RETURN ch, v, c, a LIMIT 200;</pre><button class="ghost copy" type="button">Copy
     try {
       var res = await fetch("/api/channel/"+encodeURIComponent(CHANNEL_ID));
       var data = await res.json();
-      if(!data.ok){ statusEl.className="status err"; statusEl.textContent="Failed to load channel."; return; }
+      if(!data.ok){ statusEl.className="status err"; statusEl.textContent="Failed to load YouTuber."; return; }
       document.querySelector("#cname").textContent = data.channel.name || CHANNEL_ID;
       var processed = data.videos.filter(function(v){return v.hasComments;}).length;
       document.querySelector("#csub").innerHTML = esc(data.channel.handle||"") + ' &middot; ' + data.videos.length +
@@ -1566,7 +1566,7 @@ RETURN ch, v, c, a LIMIT 200;</pre><button class="ghost copy" type="button">Copy
       statusEl.className="status"; statusEl.textContent = "";
       render();
       renderChannelGraph(data.channel.name, videos);
-    } catch(err){ statusEl.className="status err"; statusEl.textContent="Failed to load channel: "+err.message; }
+    } catch(err){ statusEl.className="status err"; statusEl.textContent="Failed to load YouTuber: "+err.message; }
   }
 
   async function consumeStream(res, onEvent){
@@ -1728,10 +1728,10 @@ ${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard", links
   </section>
 
   <section id="channelsSection">
-    <h2>Channels (<span id="channelCount">0</span>)</h2>
+    <h2>YouTubers (<span id="channelCount">0</span>)</h2>
     <form id="channelForm" class="chanform">
       <input id="channelUrl" type="url" placeholder="https://www.youtube.com/@PaulJLipsky/videos" autocomplete="off" required />
-      <button id="channelBtn" type="submit">Add channel</button>
+      <button id="channelBtn" type="submit">Add YouTuber</button>
     </form>
     <div id="channels" class="channels"></div>
   </section>
@@ -1789,7 +1789,7 @@ ${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard", links
       const channels = data.channels || [];
       channelCount.textContent = channels.length;
       if (!channels.length) {
-        channelsEl.innerHTML = '<span class="muted">No channels yet — add one above.</span>';
+        channelsEl.innerHTML = '<span class="muted">No YouTubers yet — add one above.</span>';
         return;
       }
       channelsEl.innerHTML = channels.map((c) => {
@@ -2049,8 +2049,8 @@ ${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard", links
   async function submitChannel(url, btn) {
     if (btn) btn.disabled = true;
     statusEl.className = "status muted";
-    statusEl.textContent = "Listing channel videos…";
-    renderSteps([["channel", "List channel videos"], ["graph", "Add to Neo4j"]]);
+    statusEl.textContent = "Listing the YouTuber's videos…";
+    renderSteps([["channel", "List YouTuber's videos"], ["graph", "Add to Neo4j"]]);
     try {
       const finalEvent = await postStream("/api/channel", { url });
       if (finalEvent && finalEvent.stage === "complete") {
@@ -2058,13 +2058,13 @@ ${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard", links
         statusEl.className = "status ok";
         let extra = "";
         if (finalEvent.graph && finalEvent.graph.ok) extra = " Added to Neo4j.";
-        statusEl.innerHTML = "Added channel “" + esc(c.name) + "” — " + c.videoCount + " videos." + extra + " " +
-          '<a class="linkbtn" href="/channel/' + encodeURIComponent(c.channelId) + '">Open channel</a>';
+        statusEl.innerHTML = "Added YouTuber “" + esc(c.name) + "” — " + c.videoCount + " videos." + extra + " " +
+          '<a class="linkbtn" href="/channel/' + encodeURIComponent(c.channelId) + '">Open YouTuber</a>';
         await loadChannels();
         await loadVideos();
       } else {
         statusEl.className = "status err";
-        statusEl.textContent = "Failed: " + ((finalEvent && finalEvent.error) || "could not list the channel");
+        statusEl.textContent = "Failed: " + ((finalEvent && finalEvent.error) || "could not list the YouTuber");
       }
     } catch (err) {
       statusEl.className = "status err";
