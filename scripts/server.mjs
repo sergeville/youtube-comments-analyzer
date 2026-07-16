@@ -559,9 +559,10 @@ async function buildDocumentStreaming(url, send) {
 // Build the document graph (chapters -> paragraphs -> concepts) and import it into Neo4j,
 // streaming progress. Structural by default; YCA_DOCUMENT_GRAPH_SEMANTIC=1 adds Ollama
 // concepts (slow — one model call per paragraph). Best-effort: never throws to the caller.
-async function importDocumentGraph(videoId, forwardProgress, send) {
+async function importDocumentGraph(videoId, forwardProgress, send, opts = {}) {
   send({ stage: "mindmap", status: "running", message: "Building document mindmap" });
-  const semantic = process.env.YCA_DOCUMENT_GRAPH_SEMANTIC === "1";
+  // opts.semantic forces concept extraction (the on-demand button); otherwise honor the env flag.
+  const semantic = opts.semantic ?? (process.env.YCA_DOCUMENT_GRAPH_SEMANTIC === "1");
   const graphArgs = [DOCUMENT_GRAPH, videoId, ...(semantic ? ["--semantic"] : [])];
   const build = await runStreaming(process.execPath, graphArgs, forwardProgress, { YCA_PROGRESS: "1" });
   const built = parseToolJson(build.stdout);
@@ -865,6 +866,41 @@ async function handleMindmap(req, res) {
   }
 }
 
+// On-demand: build the SEMANTIC document mindmap (concepts + summaries via Ollama) for a
+// video already fetched, and import it into Neo4j. Complements the add pipeline, which is
+// structural-only by default so it stays fast.
+async function handleConcepts(req, res) {
+  if (busy) {
+    return sendJson(res, 409, { ok: false, error: "Another job is already running. Try again shortly." });
+  }
+  let body;
+  try { body = JSON.parse(await readBody(req) || "{}"); } catch { return sendJson(res, 400, { ok: false, error: "Invalid JSON body." }); }
+  const videoId = (body.videoId || "").trim();
+  if (!VIDEO_ID.test(videoId)) return sendJson(res, 400, { ok: false, error: "Bad video id." });
+  if (!process.env.NEO4J_USER || !process.env.NEO4J_PASSWORD) {
+    return sendJson(res, 400, { ok: false, error: "Set NEO4J_USER and NEO4J_PASSWORD to build the concept graph." });
+  }
+  if (!fs.existsSync(path.join(OUT_DIR, `${videoId}.info.json`))) {
+    return sendJson(res, 400, { ok: false, error: "Fetch this video's transcript first." });
+  }
+  res.writeHead(200, { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-cache", "connection": "keep-alive" });
+  const send = (event) => res.write(`data: ${JSON.stringify(event)}\n\n`);
+  const forwardProgress = sseProgress(send);
+  busy = true;
+  try {
+    send({ stage: "start" });
+    const mindmap = await importDocumentGraph(videoId, forwardProgress, send, { semantic: true });
+    if (!mindmap.ok) { send({ stage: "error", error: mindmap.error }); return res.end(); }
+    send({ stage: "complete", videoId, mindmap });
+    res.end();
+  } catch (error) {
+    send({ stage: "error", error: error.message });
+    res.end();
+  } finally {
+    busy = false;
+  }
+}
+
 async function handleAdd(req, res) {
   if (busy) {
     return sendJson(res, 409, { ok: false, error: "Another extraction is already running. Try again shortly." });
@@ -1049,6 +1085,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && route === "/api/channel") return void handleAddChannel(req, res);
     if (req.method === "POST" && route === "/api/document") return void handleDocument(req, res);
     if (req.method === "POST" && route === "/api/mindmap") return void handleMindmap(req, res);
+    if (req.method === "POST" && route === "/api/concepts") return void handleConcepts(req, res);
     if (req.method === "POST" && route === "/api/remove") return void handleRemove(req, res);
 
     const channelApi = route.match(/^\/api\/channel\/([^/]+)$/);
@@ -1371,8 +1408,8 @@ function renderIndexPage() {
   button.remove { min-height: 30px; padding: 0 10px; border: 1px solid rgba(248,113,113,0.4); border-radius: 7px; background: transparent; color: #fca5a5; font-size: 0.78rem; font-weight: 700; }
   button.remove:hover { background: rgba(248,113,113,0.12); }
   .linkbtn { min-height: auto; padding: 2px 8px; margin-left: 8px; border: 1px solid rgba(153,246,228,0.4); border-radius: 6px; background: transparent; color: #99f6e4; font-size: 0.82rem; font-weight: 800; text-decoration: none; }
-  button.builddoc, button.buildmm { min-height: 30px; padding: 0 10px; margin-right: 6px; border: 1px solid rgba(148,163,184,0.4); border-radius: 7px; background: transparent; color: #cbd5e1; font-size: 0.78rem; font-weight: 700; }
-  button.builddoc:hover, button.buildmm:hover { border-color: #99f6e4; color: #99f6e4; }
+  button.builddoc, button.buildmm, button.buildconcepts { min-height: 30px; padding: 0 10px; margin-right: 6px; border: 1px solid rgba(148,163,184,0.4); border-radius: 7px; background: transparent; color: #cbd5e1; font-size: 0.78rem; font-weight: 700; }
+  button.builddoc:hover, button.buildmm:hover, button.buildconcepts:hover { border-color: #99f6e4; color: #99f6e4; }
   .opt { display: inline-flex; align-items: center; gap: 7px; color: #94a3b8; font-size: 0.82rem; width: 100%; margin-top: 2px; }
   .opt input { width: 15px; height: 15px; }
   .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
@@ -1543,6 +1580,7 @@ ${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard" })}
         const actions = [
           v.hasDocument ? "" : '<button type="button" class="builddoc" data-id="' + esc(v.videoId) + '">Build doc</button>',
           v.hasComments && !v.hasMindmap ? '<button type="button" class="buildmm" data-id="' + esc(v.videoId) + '">Mind map</button>' : "",
+          v.hasTranscript && data.neo4jAvailable ? '<button type="button" class="buildconcepts" data-id="' + esc(v.videoId) + '">Concepts</button>' : "",
           isGraphOnly ? "" : '<button type="button" class="remove" data-id="' + esc(v.videoId) + '">Remove</button>',
         ].join("");
         return "<tr>" +
@@ -1619,6 +1657,8 @@ ${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard" })}
     if (bd) { buildDocumentFor(bd.getAttribute("data-id")); return; }
     const mm = event.target.closest(".buildmm");
     if (mm) { buildMindmapFor(mm.getAttribute("data-id")); return; }
+    const cc = event.target.closest(".buildconcepts");
+    if (cc) { buildConceptsFor(cc.getAttribute("data-id")); return; }
   });
 
   // --- Progress stepper -----------------------------------------------------
@@ -1835,6 +1875,28 @@ ${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard" })}
         statusEl.className = "status ok";
         statusEl.innerHTML = "Built mind map for " + esc(videoId) + " — " + (mm.themes || 0) + " themes (" + esc(mm.sentiment || "") + "). " +
           '<a class="linkbtn" href="/mindmap/' + encodeURIComponent(videoId) + '" target="_blank" rel="noreferrer">Open</a>';
+        await loadVideos();
+      } else {
+        statusEl.className = "status err";
+        statusEl.textContent = "Failed: " + ((finalEvent && finalEvent.error) || "the build did not complete");
+      }
+    } catch (err) {
+      statusEl.className = "status err";
+      statusEl.textContent = "Failed: " + err.message;
+    }
+  }
+
+  async function buildConceptsFor(videoId) {
+    statusEl.className = "status muted";
+    statusEl.textContent = "Building concept graph for " + videoId + "… (local Ollama, one call per paragraph — this can take several minutes)";
+    renderSteps([["mindmap", "Build concept graph (Neo4j + Ollama)"]]);
+    try {
+      const finalEvent = await postStream("/api/concepts", { videoId });
+      if (finalEvent && finalEvent.stage === "complete") {
+        const mm = finalEvent.mindmap || {};
+        statusEl.className = "status ok";
+        statusEl.textContent = "Imported concept graph for " + esc(videoId) + " — " +
+          (mm.chapters || 0) + " chapters, " + (mm.paragraphs || 0) + " paragraphs, " + (mm.concepts || 0) + " concepts.";
         await loadVideos();
       } else {
         statusEl.className = "status err";
