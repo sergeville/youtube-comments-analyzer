@@ -16,6 +16,7 @@ import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 import { loadDotEnv, resolveConfig, cypher, cypherRows } from "./neo4j-lib.mjs";
+import { normalizeGraph, NODE_STYLES } from "./graph-view.mjs";
 import { isChannelUrl, CHANNEL_ID } from "./channel-tool.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -1069,6 +1070,197 @@ async function handleChannels(res) {
   sendJson(res, 200, { ok: true, neo4jAvailable: graphChannels !== null, channels });
 }
 
+// ---- /graph/3d — Neo4j 3D view (Phase A of docs/neo4j-3d-view-yca-fit.md) -------------
+const GRAPH_NODE_CAP = Number(process.env.YCA_GRAPH_NODE_CAP || 300);
+const GRAPH_MAX_CONCEPTS = Number(process.env.YCA_GRAPH_MAX_CONCEPTS || 120);
+
+function neo4jReadConfig() {
+  if (!process.env.NEO4J_USER || !process.env.NEO4J_PASSWORD) return null;
+  return resolveConfig({});
+}
+
+// Schema + the list of graphed videos (for the picker). Read-only, best-effort.
+async function handleGraphSchema(res) {
+  const config = neo4jReadConfig();
+  if (!config) return sendJson(res, 200, { ok: true, neo4jAvailable: false, labels: [], relationshipTypes: [], videos: [] });
+  try {
+    const [labels, relationshipTypes, videos] = await Promise.all([
+      cypherRows(config, "MATCH (n) UNWIND labels(n) AS l RETURN l, count(*) AS c ORDER BY c DESC"),
+      cypherRows(config, "MATCH ()-[r]->() RETURN type(r) AS t, count(*) AS c ORDER BY c DESC"),
+      cypherRows(config, "MATCH (v:YouTubeVideo)-[:HAS_CHAPTER]->(ch:Chapter) RETURN v.id AS id, v.title AS title, count(ch) AS chapters ORDER BY chapters DESC, title"),
+    ]);
+    sendJson(res, 200, {
+      ok: true,
+      neo4jAvailable: true,
+      labels: labels.map(([name, count]) => ({ name, count })),
+      relationshipTypes: relationshipTypes.map(([name, count]) => ({ name, count })),
+      videos: videos.map(([id, title, chapters]) => ({ id, title, chapters })),
+    });
+  } catch (error) {
+    sendJson(res, 502, { ok: false, error: `Neo4j read failed: ${error.message}` });
+  }
+}
+
+// Overview subgraph for one video: Video -> Chapters (real HAS_CHAPTER + NEXT) and a
+// derived, weighted Chapter -[:MENTIONS]-> Concept edge that collapses the 715 paragraphs
+// into the readable chapter/concept mindmap. Concepts are capped by total weight; the whole
+// result is capped at GRAPH_NODE_CAP with a `truncated` flag (fit-doc §5).
+async function handleGraphOverview(req, res, url) {
+  const config = neo4jReadConfig();
+  if (!config) return sendJson(res, 400, { ok: false, error: "Set NEO4J_USER and NEO4J_PASSWORD." });
+  const limit = Math.max(1, Number(url.searchParams.get("limit")) || GRAPH_NODE_CAP);
+  const maxConcepts = Math.max(0, Number(url.searchParams.get("maxConcepts")) || GRAPH_MAX_CONCEPTS);
+  try {
+    let videoId = (url.searchParams.get("videoId") || "").trim();
+    if (!videoId) {
+      const first = await cypherRows(config, "MATCH (v:YouTubeVideo)-[:HAS_CHAPTER]->() RETURN v.id ORDER BY v.id LIMIT 1");
+      videoId = first[0]?.[0] || "";
+    }
+    if (!videoId || !VIDEO_ID.test(videoId)) return sendJson(res, 400, { ok: false, error: "No graphed video to show." });
+
+    const [videoRow, chapters, chapterConcepts] = await Promise.all([
+      cypherRows(config, "MATCH (v:YouTubeVideo {id:$id}) RETURN v.id, v.title, v.url", { id: videoId }),
+      cypherRows(config, "MATCH (v:YouTubeVideo {id:$id})-[:HAS_CHAPTER]->(ch:Chapter) RETURN ch.id, ch.index, ch.title ORDER BY ch.index", { id: videoId }),
+      cypherRows(config, `
+        MATCH (v:YouTubeVideo {id:$id})-[:HAS_CHAPTER]->(ch:Chapter)-[:HAS_PARAGRAPH]->(:Paragraph)-[:MENTIONS]->(co:Concept)
+        WITH ch, co, count(*) AS weight
+        RETURN ch.id AS chId, co.name AS concept, weight ORDER BY weight DESC`, { id: videoId }),
+    ]);
+    if (!videoRow.length) return sendJson(res, 404, { ok: false, error: "Video not found in the graph." });
+
+    const rawNodes = [];
+    const rawLinks = [];
+    const [vid, vtitle, vurl] = videoRow[0];
+    rawNodes.push({ id: vid, primaryLabel: "YouTubeVideo", name: vtitle || vid, properties: { url: vurl } });
+    for (const [chId, chIndex, chTitle] of chapters) {
+      rawNodes.push({ id: chId, primaryLabel: "Chapter", name: chTitle || `Chapter ${chIndex}`, properties: { index: chIndex } });
+      rawLinks.push({ source: vid, target: chId, type: "HAS_CHAPTER" });
+    }
+    for (let i = 0; i < chapters.length - 1; i++) rawLinks.push({ source: chapters[i][0], target: chapters[i + 1][0], type: "NEXT" });
+
+    // Keep only the top-weight concepts, then their chapter edges (derived MENTIONS).
+    const conceptWeight = new Map();
+    for (const [, concept, weight] of chapterConcepts) conceptWeight.set(concept, (conceptWeight.get(concept) || 0) + weight);
+    const topConcepts = new Set([...conceptWeight.entries()].sort((a, b) => b[1] - a[1]).slice(0, maxConcepts).map(([name]) => name));
+    for (const name of topConcepts) rawNodes.push({ id: `concept:${name}`, primaryLabel: "Concept", name, properties: { totalWeight: conceptWeight.get(name) } });
+    for (const [chId, concept, weight] of chapterConcepts) {
+      if (topConcepts.has(concept)) rawLinks.push({ source: chId, target: `concept:${concept}`, type: "MENTIONS", weight });
+    }
+
+    const graph = normalizeGraph(rawNodes, rawLinks, { limit });
+    sendJson(res, 200, { ok: true, videoId, title: vtitle, ...graph });
+  } catch (error) {
+    sendJson(res, 502, { ok: false, error: `Neo4j read failed: ${error.message}` });
+  }
+}
+
+function renderGraph3dPage() {
+  const GROUP_COLORS = {
+    video: "#f97316", chapter: "#38bdf8", concept: "#a78bfa", paragraph: "#94a3b8",
+    author: "#f472b6", comment: "#64748b", category: "#facc15", context: "#34d399",
+    channel: "#fb7185", other: "#cbd5e1",
+  };
+  const legend = Object.entries(GROUP_COLORS)
+    .filter(([g]) => ["video", "chapter", "concept"].includes(g))
+    .map(([g, c]) => `<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px;"><span style="width:10px;height:10px;border-radius:50%;background:${c};display:inline-block;"></span>${g}</span>`)
+    .join("");
+  return `<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>3D Graph — YouTube Comments Analyzer</title>
+<script src="https://unpkg.com/3d-force-graph@1.73.4/dist/3d-force-graph.min.js"></script>
+<style>
+  html,body { margin:0; height:100%; background:#05070d; color:#e2e8f0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  #wrap { display:flex; flex-direction:column; height:100vh; }
+  .toolbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:9px 18px; background:#0b1120; border-bottom:1px solid rgba(148,163,184,0.22); font-size:0.82rem; }
+  .toolbar select, .toolbar button { min-height:30px; padding:0 10px; border:1px solid rgba(148,163,184,0.4); border-radius:7px; background:transparent; color:#e2e8f0; font:inherit; }
+  .toolbar button:hover, .toolbar select:hover { border-color:#5eead4; color:#5eead4; }
+  #status { color:#94a3b8; }
+  #stage { flex:1; position:relative; min-height:0; }
+  #graph { position:absolute; inset:0; }
+  #inspector { position:absolute; top:12px; right:12px; width:280px; max-height:calc(100% - 24px); overflow:auto; background:rgba(11,17,32,0.92); border:1px solid rgba(148,163,184,0.3); border-radius:10px; padding:14px; font-size:0.82rem; display:none; }
+  #inspector h3 { margin:0 0 6px; font-size:0.95rem; }
+  #inspector .lbl { display:inline-block; background:#1c2740; border-radius:5px; padding:1px 7px; font-size:0.72rem; color:#99f6e4; margin-bottom:8px; }
+  #inspector .row { margin:3px 0; color:#cbd5e1; word-break:break-word; }
+  #inspector .k { color:#64748b; }
+  #legend { color:#94a3b8; }
+</style>
+</head><body>
+<div id="wrap">
+  ${renderTopNav({ title: "3D Graph", current: "graph3d", links: [{ key: "graph3d", label: "3D Graph", href: "/graph/3d" }] })}
+  <div class="toolbar">
+    <label>Video <select id="video"></select></label>
+    <button id="reload" type="button">Reload</button>
+    <button id="reset" type="button">Reset camera</button>
+    <span id="legend">${legend}</span>
+    <span id="status">Loading…</span>
+  </div>
+  <div id="stage">
+    <div id="graph"></div>
+    <div id="inspector"></div>
+  </div>
+</div>
+<script>
+  var GROUP_COLORS = ${JSON.stringify(GROUP_COLORS)};
+  var el = function (id) { return document.getElementById(id); };
+  var statusEl = el("status"), inspectorEl = el("inspector");
+  var Graph = ForceGraph3D()(el("graph"))
+    .backgroundColor("#05070d")
+    .nodeLabel(function (n) { return n.name + " (" + n.primaryLabel + ")"; })
+    .nodeColor(function (n) { return GROUP_COLORS[n.group] || GROUP_COLORS.other; })
+    .nodeVal(function (n) { return n.size || 5; })
+    .nodeOpacity(0.92)
+    .linkColor(function () { return "rgba(148,163,184,0.35)"; })
+    .linkDirectionalArrowLength(2.5)
+    .linkDirectionalArrowRelPos(1)
+    .onNodeClick(focusNode)
+    .onBackgroundClick(function () { inspectorEl.style.display = "none"; });
+
+  function sizeGraph() { Graph.width(el("stage").clientWidth).height(el("stage").clientHeight); }
+  window.addEventListener("resize", sizeGraph);
+
+  function focusNode(node) {
+    var rows = "";
+    var props = node.properties || {};
+    for (var k in props) { if (props[k] != null && props[k] !== "") rows += '<div class="row"><span class="k">' + k + ':</span> ' + String(props[k]) + "</div>"; }
+    inspectorEl.innerHTML = '<h3>' + escapeText(node.name) + '</h3><span class="lbl">' + node.primaryLabel + '</span>' +
+      '<div class="row"><span class="k">id:</span> ' + escapeText(node.id) + "</div>" + rows;
+    inspectorEl.style.display = "block";
+    var d = 120, r = 1 + d / Math.hypot(node.x || 1, node.y || 1, node.z || 1);
+    Graph.cameraPosition({ x: (node.x || 0) * r, y: (node.y || 0) * r, z: (node.z || 0) * r }, node, 1200);
+  }
+  function escapeText(s) { return String(s).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
+
+  function loadGraph(videoId) {
+    statusEl.textContent = "Loading graph…";
+    inspectorEl.style.display = "none";
+    var q = videoId ? "?videoId=" + encodeURIComponent(videoId) : "";
+    fetch("/api/graph/overview" + q).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.ok) { statusEl.textContent = "Error: " + (d.error || "failed"); return; }
+      Graph.graphData({ nodes: d.nodes, links: d.links });
+      sizeGraph();
+      statusEl.textContent = d.metadata.nodeCount + " nodes · " + d.metadata.relationshipCount + " links" +
+        (d.metadata.truncated ? " · ⚠ truncated" : "") + " — " + (d.title || d.videoId);
+    }).catch(function (e) { statusEl.textContent = "Error: " + e.message; });
+  }
+
+  fetch("/api/graph/schema").then(function (r) { return r.json(); }).then(function (d) {
+    var sel = el("video");
+    if (!d.ok || !d.neo4jAvailable) { statusEl.textContent = "Neo4j not available."; return; }
+    if (!d.videos.length) { statusEl.textContent = "No graphed videos yet — build a document mindmap first."; return; }
+    sel.innerHTML = d.videos.map(function (v) {
+      return '<option value="' + escapeText(v.id) + '">' + escapeText((v.title || v.id).slice(0, 60)) + " (" + v.chapters + " ch)</option>";
+    }).join("");
+    loadGraph(sel.value);
+  }).catch(function (e) { statusEl.textContent = "Error: " + e.message; });
+
+  el("video").addEventListener("change", function (e) { loadGraph(e.target.value); });
+  el("reload").addEventListener("click", function () { loadGraph(el("video").value); });
+  el("reset").addEventListener("click", function () { Graph.zoomToFit(600, 40); });
+</script>
+</body></html>`;
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${HOST}:${PORT}`);
@@ -1078,6 +1270,12 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       return res.end(renderIndexPage());
     }
+    if (req.method === "GET" && route === "/graph/3d") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      return res.end(renderGraph3dPage());
+    }
+    if (req.method === "GET" && route === "/api/graph/schema") return void handleGraphSchema(res);
+    if (req.method === "GET" && route === "/api/graph/overview") return void handleGraphOverview(req, res, url);
     if (req.method === "POST" && !requirePostToken(req, res)) return;
     if (req.method === "GET" && route === "/api/videos") return void handleVideos(res);
     if (req.method === "GET" && route === "/api/channels") return void handleChannels(res);
@@ -1445,7 +1643,7 @@ function renderIndexPage() {
 </style>
 </head>
 <body>
-${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard" })}
+${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard", links: [{ key: "graph3d", label: "3D Graph", href: "/graph/3d" }] })}
 <main>
   <h1>YouTube Comments Analyzer</h1>
   <p class="sub">Local dashboard &middot; loopback only. Add a video to extract, classify, build its report, and load it into Neo4j.</p>
