@@ -1204,7 +1204,7 @@ async function handleGraphOverview(req, res, url) {
   }
 }
 
-function renderGraph3dPage() {
+export function renderGraph3dPage() {
   const GROUP_COLORS = {
     video: "#f97316", chapter: "#38bdf8", concept: "#a78bfa", paragraph: "#94a3b8",
     author: "#f472b6", comment: "#64748b", category: "#facc15", context: "#34d399",
@@ -1635,7 +1635,7 @@ RETURN ch, v, c, a LIMIT 200;</pre><button class="ghost copy" type="button">Copy
 </html>`;
 }
 
-function renderIndexPage() {
+export function renderIndexPage() {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -2170,7 +2170,7 @@ ${renderTopNav({ title: "YouTube Comments Analyzer", current: "dashboard", links
   }
 
   async function buildConceptsFor(videoId) {
-    if (!window.confirm("Build the concept graph for " + videoId + "?\n\nThis runs one local Ollama call per paragraph (several minutes for a long video) and blocks other jobs until it finishes.")) return;
+    if (!window.confirm("Build the concept graph for " + videoId + "?\\n\\nThis runs one local Ollama call per paragraph (several minutes for a long video) and blocks other jobs until it finishes.")) return;
     const restore = beginRowJob(videoId, "buildconcepts", "Building…");
     statusEl.className = "status muted";
     statusEl.textContent = "Building concept graph for " + videoId + "… (local Ollama, one call per paragraph — this can take several minutes)";
