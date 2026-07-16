@@ -81,7 +81,15 @@ to re-run.
 
 ## Retention & source of truth
 
-- **Source of truth:** the generated `output/<videoId>.comments.json` files. The graph is
-  a derived, rebuildable projection — safe to drop and re-import.
+- **Generated report source of truth:** the generated `output/<videoId>.comments.json`
+  files remain the durable source for full extracted comment reports and regenerated
+  HTML/document/mind-map artifacts.
+- **Dashboard graph inventory:** when Neo4j is configured and reachable, the dashboard
+  also treats the graph as the source for channel/video inventory. It reads
+  `(:YouTubeChannel)-[:PUBLISHED]->(:YouTubeVideo)` relationships so graph-only videos
+  remain visible even when no local `output/<videoId>.comments.json` exists yet.
+- **Rebuildability:** Neo4j is still a local derived projection for comment data. Dropping
+  the volume removes graph inventory as well as imported comments, so only wipe it when
+  the graph is disposable or backed by recoverable channel/output artifacts.
 - **Retention:** local/dev only; no retention policy enforced. Wipe with
   `docker compose down -v`.
